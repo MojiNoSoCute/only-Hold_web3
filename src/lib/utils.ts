@@ -36,7 +36,7 @@ export function formatETH(value: string | number): string {
 }
 
 /**
- * Returns a relative time string (e.g., "2 days ago")
+ * Returns a relative time string in Thai (e.g., "2 วันที่แล้ว")
  */
 export function timeAgo(dateStr: string): string {
   const date = new Date(dateStr);
@@ -44,18 +44,18 @@ export function timeAgo(dateStr: string): string {
   const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
   const intervals: [number, string][] = [
-    [31536000, 'year'],
-    [2592000, 'month'],
-    [86400, 'day'],
-    [3600, 'hour'],
-    [60, 'minute'],
+    [31536000, 'ปี'],
+    [2592000, 'เดือน'],
+    [86400, 'วัน'],
+    [3600, 'ชั่วโมง'],
+    [60, 'นาที'],
   ];
 
   for (const [secs, label] of intervals) {
     const count = Math.floor(seconds / secs);
-    if (count >= 1) return `${count} ${label}${count !== 1 ? 's' : ''} ago`;
+    if (count >= 1) return `${count} ${label}ที่แล้ว`;
   }
-  return 'just now';
+  return 'เมื่อกี้';
 }
 
 /**

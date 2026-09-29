@@ -223,15 +223,15 @@ export const MOCK_CONTENT: Content[] = [
 ];
 
 export const CATEGORIES = [
-  { value: 'all', label: 'All', icon: '🌐' },
-  { value: 'art', label: 'Art', icon: '🎨' },
-  { value: 'music', label: 'Music', icon: '🎵' },
-  { value: 'fitness', label: 'Fitness', icon: '💪' },
-  { value: 'gaming', label: 'Gaming', icon: '🎮' },
-  { value: 'education', label: 'Education', icon: '📚' },
-  { value: 'lifestyle', label: 'Lifestyle', icon: '✨' },
-  { value: 'photography', label: 'Photography', icon: '📷' },
-  { value: 'writing', label: 'Writing', icon: '✍️' },
+  { value: 'all', label: 'ทั้งหมด', icon: '🌐' },
+  { value: 'art', label: 'ศิลปะ', icon: '🎨' },
+  { value: 'music', label: 'ดนตรี', icon: '🎵' },
+  { value: 'fitness', label: 'ฟิตเนส', icon: '💪' },
+  { value: 'gaming', label: 'เกม', icon: '🎮' },
+  { value: 'education', label: 'การศึกษา', icon: '📚' },
+  { value: 'lifestyle', label: 'ไลฟ์สไตล์', icon: '✨' },
+  { value: 'photography', label: 'ถ่ายภาพ', icon: '📷' },
+  { value: 'writing', label: 'งานเขียน', icon: '✍️' },
 ];
 
 export const SUPPORTED_CHAINS = {
