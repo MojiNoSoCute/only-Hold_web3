@@ -19,7 +19,8 @@ export interface SyncStore {
   version: number;
 }
 
-// Global server memory store (persists across warm Vercel serverless invocations)
+const CLOUD_STORE_URL = 'https://api.restful-api.dev/objects/ff808181a09d98f701a0ef42155c4588';
+
 const globalStore = globalThis as unknown as {
   _onlyhold_sync_store?: SyncStore;
 };
@@ -155,8 +156,36 @@ const DEFAULT_CONTENT: Content[] = [
   },
 ];
 
-function getStore(): SyncStore {
-  if (!globalStore._onlyhold_sync_store) {
+async function fetchFromCloud(): Promise<SyncStore | null> {
+  try {
+    const res = await fetch(CLOUD_STORE_URL, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const json = await res.json();
+    if (json && json.data) {
+      return json.data as SyncStore;
+    }
+  } catch {}
+  return null;
+}
+
+async function saveToCloud(store: SyncStore): Promise<void> {
+  try {
+    await fetch(CLOUD_STORE_URL, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'onlyhold_sync', data: store }),
+    });
+  } catch {}
+}
+
+async function getStore(): Promise<SyncStore> {
+  if (globalStore._onlyhold_sync_store) {
+    return globalStore._onlyhold_sync_store;
+  }
+  const cloudData = await fetchFromCloud();
+  if (cloudData && Array.isArray(cloudData.creators) && Array.isArray(cloudData.content)) {
+    globalStore._onlyhold_sync_store = cloudData;
+  } else {
     globalStore._onlyhold_sync_store = {
       creators: [...DEFAULT_CREATORS],
       content: [...DEFAULT_CONTENT],
@@ -170,12 +199,12 @@ function getStore(): SyncStore {
 }
 
 export async function GET() {
-  const store = getStore();
+  const store = await getStore();
   return NextResponse.json(store);
 }
 
 export async function POST(req: Request) {
-  const store = getStore();
+  const store = await getStore();
   try {
     const body = await req.json();
     const { action, data, id, postId, comment, likesCount, payload } = body;
@@ -224,7 +253,6 @@ export async function POST(req: Request) {
     } else if (action === 'add_comment' && postId && comment) {
       const current = store.comments[postId] || [];
       store.comments[postId] = [comment, ...current];
-      // Update comment count on post
       const post = store.content.find((c) => c.id === postId);
       if (post) {
         post.comments = store.comments[postId].length;
@@ -266,6 +294,7 @@ export async function POST(req: Request) {
     }
 
     store.version = Date.now();
+    await saveToCloud(store);
     return NextResponse.json(store);
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
