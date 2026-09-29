@@ -2,15 +2,12 @@
 
 /**
  * useChainData — ดึงข้อมูลครีเอเตอร์และ content จาก Sepolia จริง
- *
- * - ดึง creator list ทั้งหมดจาก OnlyHoldFactory.allCreators()
- * - ดึง profile แต่ละคนจาก creatorProfiles()
- * - ใช้ MOCK_CONTENT เป็น off-chain data (ในอนาคตเปลี่ยนเป็น IPFS)
- * - cache ไว้ใน module-level เพื่อไม่ต้อง refetch ทุก render
+ * และ merge กับ admin mock data จาก localStorage
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { MOCK_CONTENT, CATEGORIES } from './mockData';
+import { getAdminCreators, getAdminContent, getAdminVersion } from './adminData';
+import { CATEGORIES } from './mockData';
 import type { Creator, Content } from './types';
 
 const FACTORY_ADDRESS = process.env.NEXT_PUBLIC_FACTORY_ADDRESS ?? '';
@@ -143,20 +140,22 @@ export interface ChainData {
 }
 
 export function useChainData(): ChainData {
-  const [creators, setCreators] = useState<Creator[]>(_cachedCreators ?? []);
+  const [chainCreators, setChainCreators] = useState<Creator[]>(_cachedCreators ?? []);
   const [isLoading, setIsLoading] = useState(!_cachedCreators);
   const [error, setError] = useState<string | null>(null);
+  // track admin data version to re-render when admin makes changes
+  const [adminVersion, setAdminVersion] = useState(() => getAdminVersion());
 
   const load = useCallback(() => {
-    if (_cachedCreators) { setCreators(_cachedCreators); setIsLoading(false); return; }
-    if (_fetchPromise) { _fetchPromise.then(setCreators).finally(() => setIsLoading(false)); return; }
+    if (_cachedCreators) { setChainCreators(_cachedCreators); setIsLoading(false); return; }
+    if (_fetchPromise) { _fetchPromise.then(setChainCreators).finally(() => setIsLoading(false)); return; }
 
     setIsLoading(true);
     _fetchPromise = fetchCreatorsFromChain();
     _fetchPromise
       .then((data) => {
         _cachedCreators = data;
-        setCreators(data);
+        setChainCreators(data);
         setError(null);
       })
       .catch((e) => setError(String(e)))
@@ -165,15 +164,38 @@ export function useChainData(): ChainData {
 
   useEffect(() => { load(); }, [load]);
 
+  // listen for admin updates
+  useEffect(() => {
+    const handler = () => setAdminVersion(getAdminVersion());
+    window.addEventListener('onlyhold-admin-update', handler);
+    return () => window.removeEventListener('onlyhold-admin-update', handler);
+  }, []);
+
   const refetch = useCallback(() => {
     _cachedCreators = null;
     _fetchPromise = null;
     load();
   }, [load]);
 
+  // ── Merge chain creators + admin mock creators ───────────────────────────
+  // Admin creators are shown when chain has no creators yet (testnet bootstrap)
+  // Chain creators take priority if username matches
+  const adminCreators = getAdminCreators();
+  const adminContent  = getAdminContent();
+
+  const mergedCreators: Creator[] = (() => {
+    if (chainCreators.length === 0) return adminCreators;
+    // Add admin creators whose username is NOT already on-chain
+    const chainUsernames = new Set(chainCreators.map((c) => c.username));
+    const extraMock = adminCreators.filter((c) => !chainUsernames.has(c.username));
+    return [...chainCreators, ...extraMock];
+  })();
+
   // Build content: attach real creator data where username matches
-  const content: Content[] = MOCK_CONTENT.map((c) => {
-    const chainCreator = creators.find((cr) => cr.username === c.creatorUsername);
+  const content: Content[] = adminContent.map((c) => {
+    const chainCreator = mergedCreators.find(
+      (cr) => cr.username === c.creatorUsername || cr.id === c.creatorId
+    );
     if (!chainCreator) return c;
     return {
       ...c,
@@ -183,7 +205,7 @@ export function useChainData(): ChainData {
     };
   });
 
-  return { creators, content, categories: CATEGORIES, isLoading, error, refetch };
+  return { creators: mergedCreators, content, categories: CATEGORIES, isLoading, error, refetch };
 }
 
 // ─── Standalone resolver (no hook — for server/util use) ──────────────────

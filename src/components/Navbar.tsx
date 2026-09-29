@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useWeb3 } from '@/lib/Web3Provider';
 import { shortenAddress } from '@/lib/utils';
+import { isAdmin } from '@/lib/adminData';
 import WalletModal from './WalletModal';
 
 export default function Navbar() {
@@ -73,6 +74,11 @@ export default function Navbar() {
                     <Link href="/my-nfts" className="flex items-center gap-2 px-4 py-3 text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors" onClick={() => setDropdownOpen(false)}>
                       <span>🖼️</span> NFT ของฉัน
                     </Link>
+                    {isAdmin(address) && (
+                      <Link href="/admin" className="flex items-center gap-2 px-4 py-3 text-sm text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 transition-colors" onClick={() => setDropdownOpen(false)}>
+                        <span>🛠️</span> Admin Panel
+                      </Link>
+                    )}
                     <hr className="border-white/5 my-1" />
                     <button onClick={() => { disconnect(); setDropdownOpen(false); }} className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 transition-colors">
                       <span>🔌</span> ตัดการเชื่อมต่อ
