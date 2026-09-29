@@ -48,6 +48,7 @@ function avatarUrl(seed: string, index = 0) {
   if (s.includes('yumi')) return avatars[0];
   if (s.includes('moji')) return avatars[1];
   if (s.includes('asdf')) return avatars[2];
+  if (s.includes('hana')) return avatars[3];
   return avatars[index % avatars.length];
 }
 
