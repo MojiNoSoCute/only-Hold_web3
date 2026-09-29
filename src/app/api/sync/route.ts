@@ -283,8 +283,35 @@ export async function POST(req: Request) {
       store.comments = {};
     }
 
+    if (body.fullStore) {
+      if (Array.isArray(body.fullStore.creators)) {
+        body.fullStore.creators.forEach((c: Creator) => {
+          if (c && c.id) {
+            const idx = store.creators.findIndex((sc) => sc && sc.id?.toLowerCase() === c.id?.toLowerCase());
+            if (idx >= 0) {
+              store.creators[idx] = { ...store.creators[idx], ...c };
+            } else {
+              store.creators.push(c);
+            }
+          }
+        });
+      }
+      if (Array.isArray(body.fullStore.content)) {
+        body.fullStore.content.forEach((c: Content) => {
+          if (c && c.id) {
+            const idx = store.content.findIndex((sc) => sc && sc.id === c.id);
+            if (idx >= 0) {
+              store.content[idx] = { ...store.content[idx], ...c };
+            } else {
+              store.content.unshift(c);
+            }
+          }
+        });
+      }
+    }
+
     store.version = Date.now();
-    saveToCloud(store).catch(() => {});
+    await saveToCloud(store);
     return NextResponse.json(store, { status: 200 });
   } catch {
     const fallback = globalStore._onlyhold_sync_store || {

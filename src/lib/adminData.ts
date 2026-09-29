@@ -335,12 +335,21 @@ let _lastSyncedVersion = 0;
 export async function pushSync(action: string, payloadData?: any): Promise<void> {
   if (typeof window === 'undefined') return;
   try {
+    const rawCreators = localStorage.getItem(KEY_CREATORS);
+    const rawContent = localStorage.getItem(KEY_CONTENT);
+    const localCreators = rawCreators ? JSON.parse(rawCreators) : [];
+    const localContent = rawContent ? JSON.parse(rawContent) : [];
+
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000);
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
     const res = await fetch('/api/sync', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, ...payloadData }),
+      body: JSON.stringify({
+        action,
+        ...payloadData,
+        fullStore: { creators: localCreators, content: localContent },
+      }),
       signal: controller.signal,
     });
     clearTimeout(timeoutId);
@@ -378,13 +387,38 @@ export function applySyncedStore(store: any): void {
 
     let updated = false;
     if (Array.isArray(store.creators)) {
-      localStorage.setItem(KEY_CREATORS, JSON.stringify(store.creators));
+      const rawLocal = localStorage.getItem(KEY_CREATORS);
+      const localCreators: Creator[] = rawLocal ? JSON.parse(rawLocal) : [];
+      const map = new Map<string, Creator>();
+      store.creators.forEach((c: Creator) => {
+        if (c && c.id) map.set(c.id.toLowerCase(), c);
+      });
+      localCreators.forEach((c: Creator) => {
+        if (c && c.id) {
+          const key = c.id.toLowerCase();
+          map.set(key, { ...(map.get(key) || {}), ...c });
+        }
+      });
+      localStorage.setItem(KEY_CREATORS, JSON.stringify(Array.from(map.values())));
       updated = true;
     }
+
     if (Array.isArray(store.content)) {
-      localStorage.setItem(KEY_CONTENT, JSON.stringify(store.content));
+      const rawLocal = localStorage.getItem(KEY_CONTENT);
+      const localContent: Content[] = rawLocal ? JSON.parse(rawLocal) : [];
+      const map = new Map<string, Content>();
+      store.content.forEach((c: Content) => {
+        if (c && c.id) map.set(c.id, c);
+      });
+      localContent.forEach((c: Content) => {
+        if (c && c.id && !map.has(c.id)) {
+          map.set(c.id, c);
+        }
+      });
+      localStorage.setItem(KEY_CONTENT, JSON.stringify(Array.from(map.values())));
       updated = true;
     }
+
     if (Array.isArray(store.deletedContentIds)) {
       localStorage.setItem(KEY_DELETED_CONTENT, JSON.stringify(store.deletedContentIds));
       updated = true;
