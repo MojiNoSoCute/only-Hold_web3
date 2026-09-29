@@ -15,10 +15,22 @@ export default function FeedPage() {
   const [walletModalOpen, setWalletModalOpen] = useState(false);
   const [accessMap, setAccessMap] = useState<Record<string, { hasAccess: boolean; via: string }>>({});
   const [loadingAccess, setLoadingAccess] = useState(false);
+  // ใช้ ref เก็บ address ล่าสุดที่ fetch แล้ว เพื่อกัน re-fetch ซ้ำ
+  const [lastFetchKey, setLastFetchKey] = useState('');
 
   useEffect(() => {
-    if (!isConnected || !address || creators.length === 0) { setAccessMap({}); return; }
+    if (!isConnected || !address || creators.length === 0) {
+      setAccessMap({});
+      return;
+    }
+
+    // สร้าง key จาก address + จำนวน creators เพื่อ deduplicate
+    const fetchKey = `${address}-${creators.length}`;
+    if (fetchKey === lastFetchKey) return;
+
     setLoadingAccess(true);
+    setLastFetchKey(fetchKey);
+
     Promise.all(
       creators.map((c) =>
         checkAccess(c.address).then((res) => ({ id: c.id, ...res }))
@@ -27,8 +39,9 @@ export default function FeedPage() {
       const map: Record<string, { hasAccess: boolean; via: string }> = {};
       results.forEach((r) => { map[r.id] = { hasAccess: r.hasAccess, via: r.via }; });
       setAccessMap(map);
-    }).finally(() => setLoadingAccess(false));
-  }, [isConnected, address, creators, checkAccess]);
+    }).catch(console.error).finally(() => setLoadingAccess(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isConnected, address, creators.length]);
 
   if (!isConnected) {
     return (

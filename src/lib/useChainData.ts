@@ -5,7 +5,7 @@
  * และ merge กับ admin mock data จาก localStorage
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getAdminCreators, getAdminContent, getAdminVersion } from './adminData';
 import { CATEGORIES } from './mockData';
 import type { Creator, Content } from './types';
@@ -178,21 +178,17 @@ export function useChainData(): ChainData {
   }, [load]);
 
   // ── Merge chain creators + admin mock creators ───────────────────────────
-  // Admin creators are shown when chain has no creators yet (testnet bootstrap)
-  // Chain creators take priority if username matches
-  const adminCreators = getAdminCreators();
-  const adminContent  = getAdminContent();
+  const adminCreators = useMemo(() => getAdminCreators(), [adminVersion]);
+  const adminContent  = useMemo(() => getAdminContent(),  [adminVersion]);
 
-  const mergedCreators: Creator[] = (() => {
+  const mergedCreators = useMemo<Creator[]>(() => {
     if (chainCreators.length === 0) return adminCreators;
-    // Add admin creators whose username is NOT already on-chain
     const chainUsernames = new Set(chainCreators.map((c) => c.username));
     const extraMock = adminCreators.filter((c) => !chainUsernames.has(c.username));
     return [...chainCreators, ...extraMock];
-  })();
+  }, [chainCreators, adminCreators]);
 
-  // Build content: attach real creator data where username matches
-  const content: Content[] = adminContent.map((c) => {
+  const content = useMemo<Content[]>(() => adminContent.map((c) => {
     const chainCreator = mergedCreators.find(
       (cr) => cr.username === c.creatorUsername || cr.id === c.creatorId
     );
@@ -203,7 +199,7 @@ export function useChainData(): ChainData {
       creatorName: chainCreator.name,
       creatorAvatar: chainCreator.avatar,
     };
-  });
+  }), [adminContent, mergedCreators]);
 
   return { creators: mergedCreators, content, categories: CATEGORIES, isLoading, error, refetch };
 }
