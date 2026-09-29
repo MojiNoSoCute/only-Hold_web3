@@ -55,7 +55,7 @@ export default function BecomeCreatorPage() {
 
     setError('');
 
-    // ── ตรวจสอบ ETH balance + isRegistered ผ่าน MetaMask provider ────────
+    // ── ตรวจสอบ ETH balance + isRegistered ────────────────────────────────
     try {
       const { ethers } = require('ethers');
       const provider = new ethers.BrowserProvider((window as any).ethereum);
@@ -66,23 +66,32 @@ export default function BecomeCreatorPage() {
         setError('ETH ไม่เพียงพอสำหรับค่า Gas — ไปรับ Sepolia ETH ฟรีที่ sepoliafaucet.com ก่อน');
         return;
       }
+    } catch (e: any) {
+      // ถ้าเช็ค balance ไม่ได้ ให้ผ่านไปก่อน
+    }
 
-      // เช็คว่า register ไปแล้วหรือยัง (ใช้ public RPC เพื่อหลีกเลี่ยง MetaMask cache)
-      if (FACTORY_ADDRESS) {
-        const publicProvider = new ethers.JsonRpcProvider('https://ethereum-sepolia.publicnode.com');
-        const factory = new ethers.Contract(
-          FACTORY_ADDRESS,
-          ['function isRegistered(address) view returns (bool)'],
-          publicProvider
-        );
-        const alreadyRegistered: boolean = await factory.isRegistered(address);
-        if (alreadyRegistered) {
+    // เช็คว่า register ไปแล้วหรือยัง
+    if (FACTORY_ADDRESS) {
+      try {
+        const { ethers } = require('ethers');
+        // ลองกับ MetaMask provider ก่อน ถ้าไม่ได้ลอง public RPC
+        let registered = false;
+        try {
+          const provider = new ethers.BrowserProvider((window as any).ethereum);
+          const factory = new ethers.Contract(FACTORY_ADDRESS, ['function isRegistered(address) view returns (bool)'], provider);
+          registered = await factory.isRegistered(address);
+        } catch {
+          const publicProvider = new ethers.JsonRpcProvider('https://ethereum-sepolia.publicnode.com');
+          const factory = new ethers.Contract(FACTORY_ADDRESS, ['function isRegistered(address) view returns (bool)'], publicProvider);
+          registered = await factory.isRegistered(address);
+        }
+        if (registered) {
           setError('กระเป๋านี้ได้ลงทะเบียนเป็นครีเอเตอร์ไปแล้ว ไปที่ Dashboard เพื่อจัดการโปรไฟล์ของคุณ');
           return;
         }
+      } catch {
+        // ถ้าเช็คไม่ได้เลย ให้ contract revert เอง
       }
-    } catch {
-      // silent — ให้ contract revert เองถ้าจำเป็น
     }
 
     // monthlyPrice: stablecoinPrice ดอลลาร์ → base units (6 decimals = USDC)
