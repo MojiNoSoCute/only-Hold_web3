@@ -179,33 +179,42 @@ export default function DashboardPage() {
   // ── Handle Profile Edit Save ──────────────────────────────────────────────
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!profile || !address) return;
+    if (!address) {
+      alert('กรุณาเชื่อมต่อกระเป๋าเพื่อบันทึกโปรไฟล์');
+      return;
+    }
 
     const currentList = getAdminCreators();
+    const targetUsername = profile?.username || profileForm.name || `user_${address.slice(2, 8)}`;
     const existingIndex = currentList.findIndex(
-      (c) => c.username.toLowerCase() === profile.username.toLowerCase() || c.address.toLowerCase() === address.toLowerCase()
+      (c) =>
+        (c.username && c.username.toLowerCase() === targetUsername.toLowerCase()) ||
+        (c.address && c.address.toLowerCase() === address.toLowerCase()) ||
+        c.id.toLowerCase() === address.toLowerCase()
     );
 
+    const existing = existingIndex >= 0 ? currentList[existingIndex] : null;
+
     const updatedCreatorObj: Creator = {
-      id: address.toLowerCase(),
+      id: existing?.id || address.toLowerCase(),
       address: address,
-      name: profileForm.name || profile.username,
-      username: profile.username,
-      avatar: profileForm.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.username}`,
-      coverImage: profileForm.coverImage || PRESET_COVERS[0],
-      bio: profileForm.bio,
-      category: 'art',
-      totalSubscribers: 0,
-      totalEarnings: '0',
-      isVerified: true,
-      nftContractAddress: profile.nftContract,
-      contentCount: 0,
-      joinedAt: new Date().toISOString().split('T')[0],
+      name: profileForm.name || existing?.name || targetUsername,
+      username: existing?.username || targetUsername,
+      avatar: profileForm.avatar || existing?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${targetUsername}`,
+      coverImage: profileForm.coverImage || existing?.coverImage || PRESET_COVERS[0],
+      bio: profileForm.bio ?? existing?.bio ?? 'ครีเอเตอร์บน OnlyHold',
+      category: existing?.category || 'art',
+      totalSubscribers: existing?.totalSubscribers || 0,
+      totalEarnings: existing?.totalEarnings || '0',
+      isVerified: existing?.isVerified ?? true,
+      nftContractAddress: profile?.nftContract || existing?.nftContractAddress,
+      contentCount: existing?.contentCount || 0,
+      joinedAt: existing?.joinedAt || new Date().toISOString().split('T')[0],
     };
 
     if (existingIndex >= 0) {
       updateAdminCreator({
-        ...currentList[existingIndex],
+        ...existing,
         ...updatedCreatorObj,
       });
     } else {
@@ -262,13 +271,12 @@ export default function DashboardPage() {
   const formatUSDC = (raw: bigint) => (Number(raw) / 1_000_000).toFixed(2);
 
   // ── Creator posts ────────────────────────────────────────────────────────
-  const myPosts = profile
-    ? content.filter(
-        (c) =>
-          c.creatorUsername?.toLowerCase() === profile.username.toLowerCase() ||
-          c.creatorId?.toLowerCase() === address?.toLowerCase()
-      )
-    : [];
+  const currentUsername = profile?.username || profileForm.name || (address ? `user_${address.slice(2, 8)}` : '');
+  const myPosts = content.filter(
+    (c) =>
+      (currentUsername && c.creatorUsername?.toLowerCase() === currentUsername.toLowerCase()) ||
+      (address && c.creatorId?.toLowerCase() === address.toLowerCase())
+  );
 
   // ── Not connected ────────────────────────────────────────────────────────
   if (!isConnected) {
@@ -293,26 +301,7 @@ export default function DashboardPage() {
     return (
       <div className="max-w-2xl mx-auto px-4 py-24 text-center">
         <div className="text-4xl mb-4 animate-pulse">⛓️</div>
-        <p className="text-white/50">กำลังโหลดข้อมูลจาก Sepolia...</p>
-      </div>
-    );
-  }
-
-  // ── Not a creator yet ────────────────────────────────────────────────────
-  if (!profile) {
-    return (
-      <div className="max-w-2xl mx-auto px-4 py-24 text-center">
-        <div className="text-6xl mb-6">🚀</div>
-        <h1 className="text-2xl font-bold text-white mb-3">คุณยังไม่ได้เป็นครีเอเตอร์</h1>
-        <p className="text-white/50 mb-8">
-          สมัครเป็นครีเอเตอร์เพื่อ Deploy สัญญา NFT และ Subscription ของคุณบน Sepolia
-        </p>
-        <Link
-          href="/become-creator"
-          className="px-8 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold hover:opacity-90 transition-all"
-        >
-          🚀 เป็นครีเอเตอร์
-        </Link>
+        <p className="text-white/50">กำลังโหลดข้อมูล...</p>
       </div>
     );
   }
@@ -324,7 +313,7 @@ export default function DashboardPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-bold text-white">แดชบอร์ดครีเอเตอร์</h1>
-          <p className="text-white/40 text-sm mt-1">@{profile.username} · Sepolia Testnet</p>
+          <p className="text-white/40 text-sm mt-1">@{currentUsername} · OnlyHold Dashboard</p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -341,7 +330,7 @@ export default function DashboardPage() {
             <span>🎨</span> แต่งโปรไฟล์
           </button>
           <Link
-            href={`/creator/${profile.username}`}
+            href={`/creator/${currentUsername}`}
             className="px-4 py-2 rounded-xl border border-white/10 text-white/70 text-sm hover:bg-white/5 transition-all"
           >
             ดูโปรไฟล์ →
@@ -434,7 +423,7 @@ export default function DashboardPage() {
             <div className="bg-[#13131a] border border-white/5 rounded-2xl p-5">
               <h3 className="font-bold text-white mb-4">📋 สัญญาของคุณ (Sepolia)</h3>
               <div className="space-y-4 text-xs">
-                {profile.nftContract && profile.nftContract !== '0x0000000000000000000000000000000000000000' && (
+                {profile?.nftContract && profile.nftContract !== '0x0000000000000000000000000000000000000000' && (
                   <div>
                     <p className="text-purple-400 font-medium mb-1">🖼️ NFT Contract</p>
                     <a
@@ -447,7 +436,7 @@ export default function DashboardPage() {
                     </a>
                   </div>
                 )}
-                {profile.subscriptionContract && profile.subscriptionContract !== '0x0000000000000000000000000000000000000000' && (
+                {profile?.subscriptionContract && profile.subscriptionContract !== '0x0000000000000000000000000000000000000000' && (
                   <div>
                     <p className="text-green-400 font-medium mb-1">💵 Subscription Contract</p>
                     <a
@@ -494,7 +483,7 @@ export default function DashboardPage() {
                     <span className="text-sm text-white/80 font-medium">เปลี่ยนรูปภาพ &amp; หน้าปก</span>
                   </button>
                   <Link
-                    href={`/creator/${profile.username}`}
+                    href={`/creator/${currentUsername}`}
                     className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors group"
                   >
                     <span className="text-base">👤</span>
@@ -638,7 +627,7 @@ export default function DashboardPage() {
               </div>
 
               <input
-                type="url"
+                type="text"
                 value={postForm.thumbnail}
                 onChange={(e) => setPostForm({ ...postForm, thumbnail: e.target.value })}
                 placeholder="https://images.unsplash.com/... หรือ Data URL"
@@ -756,14 +745,14 @@ export default function DashboardPage() {
               <div className="p-4 flex items-end gap-4 -mt-10 relative z-10">
                 <div className="w-16 h-16 rounded-xl border-2 border-[#13131a] bg-purple-600 overflow-hidden flex-shrink-0 shadow-lg">
                   <img
-                    src={profileForm.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.username}`}
+                    src={profileForm.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUsername}`}
                     alt="Avatar preview"
                     className="w-full h-full object-cover"
                   />
                 </div>
                 <div>
-                  <h4 className="font-bold text-white text-base">{profileForm.name || profile.username}</h4>
-                  <p className="text-white/40 text-xs">@{profile.username}</p>
+                  <h4 className="font-bold text-white text-base">{profileForm.name || currentUsername}</h4>
+                  <p className="text-white/40 text-xs">@{currentUsername}</p>
                 </div>
               </div>
             </div>
@@ -808,7 +797,7 @@ export default function DashboardPage() {
                 <span className="text-white/40 text-xs text-center">หรือวาง URL ด้านล่าง</span>
               </div>
               <input
-                type="url"
+                type="text"
                 value={profileForm.avatar}
                 onChange={(e) => setProfileForm({ ...profileForm, avatar: e.target.value })}
                 placeholder="https://api.dicebear.com/... หรือ Data URL"
@@ -848,7 +837,7 @@ export default function DashboardPage() {
                 <span className="text-white/40 text-xs text-center">หรือวาง URL ด้านล่าง</span>
               </div>
               <input
-                type="url"
+                type="text"
                 value={profileForm.coverImage}
                 onChange={(e) => setProfileForm({ ...profileForm, coverImage: e.target.value })}
                 placeholder="https://images.unsplash.com/... หรือ Data URL"
