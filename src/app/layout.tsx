@@ -15,13 +15,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'OnlyHold – Support Creators via NFT & Stablecoin',
+  title: 'OnlyHold – สนับสนุนครีเอเตอร์ด้วย NFT & Stablecoin',
   description:
-    'The Web3-native creator platform. Subscribe to your favourite creators by holding their NFTs or depositing stablecoins to unlock exclusive content.',
-  keywords: ['NFT', 'creator', 'blockchain', 'stablecoin', 'exclusive content', 'Web3'],
+    'แพลตฟอร์มครีเอเตอร์บน Web3 สมัครสมาชิกด้วยการถือ NFT หรือฝาก Stablecoin เพื่อปลดล็อกคอนเทนต์พิเศษ',
+  keywords: ['NFT', 'ครีเอเตอร์', 'blockchain', 'stablecoin', 'คอนเทนต์พิเศษ', 'Web3', 'Sepolia'],
   openGraph: {
     title: 'OnlyHold',
-    description: 'Support creators. Hold NFTs. Unlock content.',
+    description: 'สนับสนุนครีเอเตอร์ ถือ NFT ปลดล็อกทุกอย่าง',
     type: 'website',
   },
 };
@@ -32,7 +32,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="th" className="dark">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#0a0a0f] text-white min-h-screen`}>
         <Web3Provider>
           <Navbar />

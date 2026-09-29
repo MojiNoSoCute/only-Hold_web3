@@ -1,13 +1,13 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState, useEffect } from 'react';
 import { notFound } from 'next/navigation';
 import { MOCK_CREATORS, MOCK_CONTENT } from '@/lib/mockData';
-import { useState } from 'react';
-import { formatNumber, shortenAddress, CATEGORY_COLORS } from '@/lib/utils';
+import { formatNumber, CATEGORY_COLORS } from '@/lib/utils';
 import ContentCard from '@/components/ContentCard';
 import SubscribeModal from '@/components/SubscribeModal';
 import { useWeb3 } from '@/lib/Web3Provider';
+import { useOnlyHold } from '@/lib/useOnlyHold';
 
 interface CreatorPageProps {
   params: Promise<{ username: string }>;
@@ -15,10 +15,19 @@ interface CreatorPageProps {
 
 export default function CreatorPage({ params }: CreatorPageProps) {
   const { username } = use(params);
-  const { isConnected } = useWeb3();
+  const { isConnected, address } = useWeb3();
+  const { checkAccess, resolveUsername } = useOnlyHold();
+
   const [subscribeModalOpen, setSubscribeModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'posts' | 'about'>('posts');
   const [copied, setCopied] = useState(false);
+
+  // on-chain state
+  const [hasAccess, setHasAccess] = useState(false);
+  const [accessVia, setAccessVia] = useState<'nft' | 'subscription' | 'none'>('none');
+  const [onChainNFT, setOnChainNFT] = useState('');
+  const [onChainSub, setOnChainSub] = useState('');
+  const [loadingAccess, setLoadingAccess] = useState(false);
 
   const creator = MOCK_CREATORS.find((c) => c.username === username);
   if (!creator) notFound();
@@ -26,10 +35,35 @@ export default function CreatorPage({ params }: CreatorPageProps) {
   const creatorContent = MOCK_CONTENT.filter((c) => c.creatorId === creator.id);
   const categoryClass = CATEGORY_COLORS[creator.category] || 'bg-gray-500/20 text-gray-400 border-gray-500/30';
 
+  // ── Resolve on-chain contract addresses ─────────────────────────────────
+  useEffect(() => {
+    resolveUsername(creator.username).then((res) => {
+      if (res && res.creator !== '0x0000000000000000000000000000000000000000') {
+        setOnChainNFT(res.nftContract);
+        setOnChainSub(res.subContract);
+      }
+    });
+  }, [creator.username, resolveUsername]);
+
+  // ── Check access whenever wallet connects or contracts resolve ───────────
+  useEffect(() => {
+    if (!isConnected || !address) { setHasAccess(false); setAccessVia('none'); return; }
+    setLoadingAccess(true);
+    checkAccess(creator.address).then((res) => {
+      setHasAccess(res.hasAccess);
+      setAccessVia(res.via as any);
+    }).finally(() => setLoadingAccess(false));
+  }, [isConnected, address, creator.address, checkAccess, onChainNFT, onChainSub]);
+
   const handleCopyAddress = async () => {
     await navigator.clipboard.writeText(creator.address);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const CATEGORY_LABELS: Record<string, string> = {
+    art: 'ศิลปะ', music: 'ดนตรี', fitness: 'ฟิตเนส', gaming: 'เกม',
+    education: 'การศึกษา', lifestyle: 'ไลฟ์สไตล์', photography: 'ถ่ายภาพ', writing: 'งานเขียน',
   };
 
   return (
@@ -60,16 +94,14 @@ export default function CreatorPage({ params }: CreatorPageProps) {
                     <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    Verified
+                    ยืนยันแล้ว
                   </span>
                 )}
                 <span className={`text-xs px-2 py-0.5 rounded-full border capitalize ${categoryClass}`}>
-                  {creator.category}
+                  {CATEGORY_LABELS[creator.category] ?? creator.category}
                 </span>
               </div>
               <p className="text-white/40 text-sm mb-2">@{creator.username}</p>
-
-              {/* Wallet address */}
               <button
                 onClick={handleCopyAddress}
                 className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/60 transition-colors font-mono"
@@ -79,17 +111,24 @@ export default function CreatorPage({ params }: CreatorPageProps) {
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                   <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
                 </svg>
-                {copied && <span className="text-green-400">Copied!</span>}
+                {copied && <span className="text-green-400">คัดลอกแล้ว!</span>}
               </button>
             </div>
 
-            {/* Subscribe Button */}
-            <div className="flex gap-2">
+            {/* Access status + subscribe button */}
+            <div className="flex flex-col gap-2 items-end">
+              {loadingAccess ? (
+                <div className="text-xs text-white/30 animate-pulse">กำลังตรวจสอบสิทธิ์...</div>
+              ) : hasAccess ? (
+                <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border ${accessVia === 'nft' ? 'bg-purple-500/20 border-purple-500/40 text-purple-300' : 'bg-green-500/20 border-green-500/40 text-green-300'}`}>
+                  ✓ {accessVia === 'nft' ? 'ถือ NFT อยู่' : 'สมาชิกอยู่'}
+                </div>
+              ) : null}
               <button
                 onClick={() => setSubscribeModalOpen(true)}
                 className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold text-sm hover:opacity-90 transition-all shadow-lg hover:shadow-purple-500/30"
               >
-                Subscribe
+                {hasAccess ? 'จัดการสมาชิก' : 'สมัครสมาชิก'}
               </button>
             </div>
           </div>
@@ -98,15 +137,15 @@ export default function CreatorPage({ params }: CreatorPageProps) {
           <div className="grid grid-cols-3 gap-4 mt-6">
             <div className="bg-[#13131a] border border-white/5 rounded-xl p-3 text-center">
               <p className="text-white font-bold text-lg">{formatNumber(creator.totalSubscribers)}</p>
-              <p className="text-white/40 text-xs">Fans</p>
+              <p className="text-white/40 text-xs">แฟนคลับ</p>
             </div>
             <div className="bg-[#13131a] border border-white/5 rounded-xl p-3 text-center">
               <p className="text-white font-bold text-lg">{creator.contentCount}</p>
-              <p className="text-white/40 text-xs">Posts</p>
+              <p className="text-white/40 text-xs">โพสต์</p>
             </div>
             <div className="bg-[#13131a] border border-white/5 rounded-xl p-3 text-center">
               <p className="text-white font-bold text-lg">${creator.totalEarnings}</p>
-              <p className="text-white/40 text-xs">Earned</p>
+              <p className="text-white/40 text-xs">รายได้รวม</p>
             </div>
           </div>
 
@@ -118,13 +157,13 @@ export default function CreatorPage({ params }: CreatorPageProps) {
                 className="p-4 bg-purple-500/10 border border-purple-500/20 rounded-xl text-left hover:border-purple-500/40 transition-colors group"
               >
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-purple-400 font-bold text-sm">🖼️ NFT Membership</span>
+                  <span className="text-purple-400 font-bold text-sm">🖼️ สมาชิก NFT</span>
                   <svg className="w-4 h-4 text-purple-400/40 group-hover:text-purple-400 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                     <path d="M5 12h14M12 5l7 7-7 7" />
                   </svg>
                 </div>
                 <p className="text-white font-bold text-xl">{creator.nftPrice} ETH</p>
-                <p className="text-white/40 text-xs mt-1">One-time • Lifetime access • Tradeable</p>
+                <p className="text-white/40 text-xs mt-1">จ่ายครั้งเดียว • สิทธิ์ตลอดชีพ • ซื้อขายได้</p>
               </button>
             )}
             {creator.stablecoinPrice && (
@@ -139,10 +178,26 @@ export default function CreatorPage({ params }: CreatorPageProps) {
                   </svg>
                 </div>
                 <p className="text-white font-bold text-xl">${creator.stablecoinPrice} USDC</p>
-                <p className="text-white/40 text-xs mt-1">Per month • Cancel anytime • Withdraw balance</p>
+                <p className="text-white/40 text-xs mt-1">ต่อเดือน • ยกเลิกได้ทุกเมื่อ • ถอนเงินคืนได้</p>
               </button>
             )}
           </div>
+
+          {/* On-chain contract addresses (if found) */}
+          {(onChainNFT || onChainSub) && (
+            <div className="mt-4 p-3 bg-white/3 border border-white/5 rounded-xl flex flex-wrap gap-3 text-xs">
+              {onChainNFT && onChainNFT !== '0x0000000000000000000000000000000000000000' && (
+                <a href={`https://sepolia.etherscan.io/address/${onChainNFT}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-purple-400 hover:text-purple-300 font-mono">
+                  🖼️ NFT: {onChainNFT.slice(0, 8)}...{onChainNFT.slice(-6)} ↗
+                </a>
+              )}
+              {onChainSub && onChainSub !== '0x0000000000000000000000000000000000000000' && (
+                <a href={`https://sepolia.etherscan.io/address/${onChainSub}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-green-400 hover:text-green-300 font-mono">
+                  💵 Sub: {onChainSub.slice(0, 8)}...{onChainSub.slice(-6)} ↗
+                </a>
+              )}
+            </div>
+          )}
 
           {/* Tabs */}
           <div className="flex gap-1 mt-6 bg-white/3 border border-white/5 rounded-xl p-1 w-fit">
@@ -150,9 +205,9 @@ export default function CreatorPage({ params }: CreatorPageProps) {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-5 py-2 rounded-lg text-sm font-medium capitalize transition-all ${activeTab === tab ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/70'}`}
+                className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === tab ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/70'}`}
               >
-                {tab}
+                {tab === 'posts' ? 'โพสต์' : 'เกี่ยวกับ'}
               </button>
             ))}
           </div>
@@ -163,26 +218,25 @@ export default function CreatorPage({ params }: CreatorPageProps) {
               creatorContent.length === 0 ? (
                 <div className="text-center py-16 text-white/30">
                   <div className="text-4xl mb-3">📭</div>
-                  <p>No posts yet.</p>
+                  <p>ยังไม่มีโพสต์</p>
                 </div>
               ) : (
                 <div className="grid sm:grid-cols-2 gap-5">
                   {creatorContent.map((content) => (
-                    <ContentCard key={content.id} content={content} />
+                    <ContentCard key={content.id} content={content} isSubscribed={hasAccess} />
                   ))}
                 </div>
               )
             ) : (
-              /* About Tab */
               <div className="space-y-6">
                 <div className="bg-[#13131a] border border-white/5 rounded-xl p-5">
-                  <h3 className="font-bold text-white text-sm mb-3">About</h3>
+                  <h3 className="font-bold text-white text-sm mb-3">เกี่ยวกับ</h3>
                   <p className="text-white/60 text-sm leading-relaxed">{creator.bio}</p>
                 </div>
 
                 {creator.socialLinks && Object.keys(creator.socialLinks).length > 0 && (
                   <div className="bg-[#13131a] border border-white/5 rounded-xl p-5">
-                    <h3 className="font-bold text-white text-sm mb-3">Links</h3>
+                    <h3 className="font-bold text-white text-sm mb-3">ลิงก์</h3>
                     <div className="space-y-2">
                       {creator.socialLinks.twitter && (
                         <a href={`https://twitter.com/${creator.socialLinks.twitter}`} target="_blank" rel="noopener" className="flex items-center gap-2 text-sm text-white/60 hover:text-white transition-colors">
@@ -203,10 +257,12 @@ export default function CreatorPage({ params }: CreatorPageProps) {
                   </div>
                 )}
 
-                {creator.nftContractAddress && (
+                {onChainNFT && onChainNFT !== '0x0000000000000000000000000000000000000000' && (
                   <div className="bg-[#13131a] border border-white/5 rounded-xl p-5">
-                    <h3 className="font-bold text-white text-sm mb-3">NFT Contract</h3>
-                    <p className="text-white/40 text-xs font-mono break-all">{creator.nftContractAddress}</p>
+                    <h3 className="font-bold text-white text-sm mb-3">สัญญา NFT (Sepolia)</h3>
+                    <a href={`https://sepolia.etherscan.io/address/${onChainNFT}`} target="_blank" rel="noopener noreferrer" className="text-purple-400 text-xs font-mono break-all hover:underline">
+                      {onChainNFT}
+                    </a>
                   </div>
                 )}
               </div>
@@ -219,7 +275,16 @@ export default function CreatorPage({ params }: CreatorPageProps) {
         <SubscribeModal
           creatorId={creator.id}
           creatorName={creator.name}
-          onClose={() => setSubscribeModalOpen(false)}
+          onClose={() => {
+            setSubscribeModalOpen(false);
+            // re-check access after modal closes
+            if (isConnected && address) {
+              checkAccess(creator.address).then((res) => {
+                setHasAccess(res.hasAccess);
+                setAccessVia(res.via as any);
+              });
+            }
+          }}
         />
       )}
     </>
