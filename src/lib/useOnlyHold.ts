@@ -354,7 +354,7 @@ export function useOnlyHold() {
         if (!factoryPromise) return { success: false, error: 'No provider' };
         const factory = await factoryPromise;
 
-        const tx = await factory.launchCreator(
+        const launchArgs = [
           params.username,
           params.metadataURI,
           params.enableNFT,
@@ -365,9 +365,17 @@ export function useOnlyHold() {
           params.nftBaseURI,
           params.enableSub,
           params.monthlyPrice,
-          ethers.ZeroAddress // use platform default stablecoin
-        );
+          ethers.ZeroAddress,
+        ] as const;
 
+        // simulate ก่อนส่งจริง เพื่อ decode revert reason
+        try {
+          await factory.launchCreator.staticCall(...launchArgs);
+        } catch (simErr: any) {
+          throw simErr; // จะถูก catch ด้านนอกและ parseContractError
+        }
+
+        const tx = await factory.launchCreator(...launchArgs);
         const receipt = await tx.wait();
         // Parse event from receipt
         const iface = new ethers.Interface(FACTORY_ABI);
