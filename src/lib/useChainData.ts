@@ -65,11 +65,11 @@ async function fetchCreatorsFromChain(): Promise<Creator[]> {
     const addresses: string[] = await factory.allCreators();
     if (!addresses || addresses.length === 0) return [];
 
-    const creators: Creator[] = await Promise.all(
-      addresses.map(async (addr, i) => {
+    const rawResults = await Promise.all(
+      addresses.map(async (addr: string, i: number): Promise<Creator | null> => {
         try {
           const p = await factory.creatorProfiles(addr);
-          const username = p.username || `creator_${addr.slice(2, 8)}`;
+          const username: string = p.username || `creator_${addr.slice(2, 8)}`;
 
           // Fetch NFT price
           let nftPrice = '';
@@ -96,10 +96,10 @@ async function fetchCreatorsFromChain(): Promise<Creator[]> {
             } catch {}
           }
 
-          return {
+          const creator: Creator = {
             id: addr.toLowerCase(),
             address: addr,
-            name: username.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+            name: username.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
             username,
             avatar: avatarUrl(username),
             coverImage: coverUrl(i),
@@ -113,15 +113,15 @@ async function fetchCreatorsFromChain(): Promise<Creator[]> {
             stablecoinPrice: stablecoinPrice || undefined,
             contentCount: 0,
             joinedAt: new Date(Number(p.registeredAt) * 1000).toISOString().split('T')[0],
-            isActive: p.isActive,
-          } satisfies Creator & { isActive: boolean };
+          };
+          return creator;
         } catch {
           return null;
         }
       })
     );
 
-    return creators.filter(Boolean) as Creator[];
+    return rawResults.filter((c): c is Creator => c !== null);
   } catch (err) {
     console.error('fetchCreatorsFromChain error:', err);
     return [];
