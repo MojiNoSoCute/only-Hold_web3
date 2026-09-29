@@ -156,9 +156,18 @@ const DEFAULT_CONTENT: Content[] = [
   },
 ];
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 async function fetchFromCloud(): Promise<SyncStore | null> {
   try {
-    const res = await fetch(CLOUD_STORE_URL, { cache: 'no-store' });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2000);
+    const res = await fetch(CLOUD_STORE_URL, {
+      cache: 'no-store',
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
     if (!res.ok) return null;
     const json = await res.json();
     if (json && json.data) {
@@ -170,11 +179,15 @@ async function fetchFromCloud(): Promise<SyncStore | null> {
 
 async function saveToCloud(store: SyncStore): Promise<void> {
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2500);
     await fetch(CLOUD_STORE_URL, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: 'onlyhold_sync', data: store }),
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
   } catch {}
 }
 

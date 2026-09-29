@@ -355,11 +355,15 @@ export function getAdminVersion(): number {
 export async function pushSync(action: string, payloadData?: any): Promise<void> {
   if (typeof window === 'undefined') return;
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
     const res = await fetch('/api/sync', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action, ...payloadData }),
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
     if (res.ok) {
       const data = await res.json();
       applySyncedStore(data);
@@ -370,7 +374,10 @@ export async function pushSync(action: string, payloadData?: any): Promise<void>
 export async function pullSync(): Promise<void> {
   if (typeof window === 'undefined') return;
   try {
-    const res = await fetch('/api/sync');
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+    const res = await fetch('/api/sync', { signal: controller.signal });
+    clearTimeout(timeoutId);
     if (res.ok) {
       const data = await res.json();
       applySyncedStore(data);
