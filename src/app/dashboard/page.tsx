@@ -13,6 +13,7 @@ import {
 import ContentCard from '@/components/ContentCard';
 import Link from 'next/link';
 import WalletModal from '@/components/WalletModal';
+import { compressImageFile } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 import type { Content, Creator } from '@/lib/types';
 
@@ -70,6 +71,21 @@ export default function DashboardPage() {
     tags: '',
   });
   const [postSuccessMsg, setPostSuccessMsg] = useState('');
+
+  // ── File upload helper (compresses image to Base64) ─────────────────────
+  const handleImageFileSelect = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    onSuccess: (base64Url: string) => void
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const compressed = await compressImageFile(file, 1200, 1200, 0.8);
+      onSuccess(compressed);
+    } catch (err: any) {
+      alert(err.message || 'เกิดข้อผิดพลาดในการโหลดรูปภาพ');
+    }
+  };
 
   // ── Load creator profile + pending earnings ─────────────────────────────
   useEffect(() => {
@@ -599,14 +615,67 @@ export default function DashboardPage() {
             </div>
 
             <div>
-              <label className="text-white/70 text-sm font-medium block mb-1.5">ลิงก์รูปภาพ / Thumbnail URL (ถ้ามี)</label>
+              <label className="text-white/70 text-sm font-medium block mb-1.5">
+                รูปภาพพรีวิว / Post Thumbnail
+              </label>
+
+              {/* Upload file button + URL option */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-2">
+                <label className="px-4 py-2.5 rounded-xl bg-purple-600/20 border border-purple-500/30 hover:bg-purple-600/30 text-purple-300 text-sm font-medium cursor-pointer transition-all flex items-center justify-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                  <span>📁 เลือกรูปจากเครื่อง (Upload File)</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleImageFileSelect(e, (url) => setPostForm({ ...postForm, thumbnail: url }))}
+                  />
+                </label>
+                <span className="text-white/40 text-xs text-center">หรือวาง URL ด้านล่าง</span>
+              </div>
+
               <input
                 type="url"
                 value={postForm.thumbnail}
                 onChange={(e) => setPostForm({ ...postForm, thumbnail: e.target.value })}
-                placeholder="https://images.unsplash.com/..."
+                placeholder="https://images.unsplash.com/... หรือ Data URL"
                 className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 text-sm focus:outline-none focus:border-purple-500/50"
               />
+
+              {/* ImgBB warning for HTML page links */}
+              {postForm.thumbnail.includes('ibb.co/') && !postForm.thumbnail.includes('i.ibb.co/') && (
+                <div className="mt-2.5 p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/30 text-yellow-300 text-xs leading-relaxed space-y-1">
+                  <div className="font-bold flex items-center gap-1.5">
+                    <span>⚠️</span> แจ้งเตือน: ลิงก์ที่วางอยู่คือลิงก์หน้าเว็บ ImgBB
+                  </div>
+                  <p className="text-yellow-200/80">
+                    รูปจะไม่แสดงเนื่องจากไม่ใช่ไฟล์รูปภาพโดยตรง แนะนำให้กดปุ่ม <strong>"📁 เลือกรูปจากเครื่อง"</strong> ด้านบน หรือใช้ Direct Image Link ที่ขึ้นต้นด้วย <code>https://i.ibb.co/...</code>
+                  </p>
+                </div>
+              )}
+
+              {/* Live Preview */}
+              {postForm.thumbnail && (
+                <div className="mt-3 relative w-full h-44 rounded-xl overflow-hidden bg-black/40 border border-white/10 group">
+                  <img
+                    src={postForm.thumbnail}
+                    alt="Preview"
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = 'none';
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setPostForm({ ...postForm, thumbnail: '' })}
+                      className="px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-medium hover:bg-red-500 transition-colors shadow-lg"
+                    >
+                      🗑️ ลบรูปออก
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Exclusive Setting */}
@@ -720,14 +789,26 @@ export default function DashboardPage() {
               />
             </div>
 
-            {/* Avatar URL / Presets */}
+            {/* Avatar URL / Presets / File Upload */}
             <div>
-              <label className="text-white/70 text-sm font-medium block mb-1.5">รูปประจำตัว / Avatar Image URL</label>
+              <label className="text-white/70 text-sm font-medium block mb-1.5">รูปประจำตัว / Avatar Image</label>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-2">
+                <label className="px-4 py-2 rounded-xl bg-purple-600/20 border border-purple-500/30 hover:bg-purple-600/30 text-purple-300 text-xs font-medium cursor-pointer transition-all flex items-center justify-center gap-2">
+                  <span>📁 เลือกไฟล์ Avatar จากเครื่อง</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleImageFileSelect(e, (url) => setProfileForm({ ...profileForm, avatar: url }))}
+                  />
+                </label>
+                <span className="text-white/40 text-xs text-center">หรือวาง URL ด้านล่าง</span>
+              </div>
               <input
                 type="url"
                 value={profileForm.avatar}
                 onChange={(e) => setProfileForm({ ...profileForm, avatar: e.target.value })}
-                placeholder="https://api.dicebear.com/... หรือ URL รูปภาพ"
+                placeholder="https://api.dicebear.com/... หรือ Data URL"
                 className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 text-sm focus:outline-none focus:border-purple-500/50 mb-2"
               />
               <p className="text-white/30 text-xs">ตัวอย่าง Avatar preset:</p>
@@ -748,14 +829,26 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Cover Image URL / Presets */}
+            {/* Cover Image URL / Presets / File Upload */}
             <div>
-              <label className="text-white/70 text-sm font-medium block mb-1.5">ภาพหน้าปก / Background Cover URL</label>
+              <label className="text-white/70 text-sm font-medium block mb-1.5">ภาพหน้าปก / Background Cover</label>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-2">
+                <label className="px-4 py-2 rounded-xl bg-purple-600/20 border border-purple-500/30 hover:bg-purple-600/30 text-purple-300 text-xs font-medium cursor-pointer transition-all flex items-center justify-center gap-2">
+                  <span>📁 เลือกไฟล์ Cover จากเครื่อง</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleImageFileSelect(e, (url) => setProfileForm({ ...profileForm, coverImage: url }))}
+                  />
+                </label>
+                <span className="text-white/40 text-xs text-center">หรือวาง URL ด้านล่าง</span>
+              </div>
               <input
                 type="url"
                 value={profileForm.coverImage}
                 onChange={(e) => setProfileForm({ ...profileForm, coverImage: e.target.value })}
-                placeholder="https://images.unsplash.com/... หรือ URL ภาพหน้าปก"
+                placeholder="https://images.unsplash.com/... หรือ Data URL"
                 className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 text-sm focus:outline-none focus:border-purple-500/50 mb-2"
               />
               <p className="text-white/30 text-xs mb-2">ภาพหน้าปกสำเร็จรูป:</p>
