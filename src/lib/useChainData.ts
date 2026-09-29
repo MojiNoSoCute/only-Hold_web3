@@ -182,9 +182,32 @@ export function useChainData(): ChainData {
   const adminContent  = useMemo(() => getAdminContent(),  [adminVersion]);
 
   const mergedCreators = useMemo<Creator[]>(() => {
-    const chainUsernames = new Set(chainCreators.map((c) => c.username));
-    const extraAdmin = adminCreators.filter((c) => !chainUsernames.has(c.username));
-    return [...chainCreators, ...extraAdmin];
+    const adminMap = new Map<string, Creator>();
+    adminCreators.forEach((c) => {
+      if (c.username) adminMap.set(c.username.toLowerCase(), c);
+      if (c.address) adminMap.set(c.address.toLowerCase(), c);
+      if (c.id) adminMap.set(c.id.toLowerCase(), c);
+    });
+
+    const chainUsernames = new Set(chainCreators.map((c) => c.username.toLowerCase()));
+
+    const enrichedChain = chainCreators.map((c) => {
+      const custom = adminMap.get(c.username.toLowerCase()) || adminMap.get(c.address.toLowerCase());
+      if (!custom) return c;
+      return {
+        ...c,
+        name: custom.name || c.name,
+        avatar: custom.avatar || c.avatar,
+        coverImage: custom.coverImage || c.coverImage,
+        bio: custom.bio || c.bio,
+      };
+    });
+
+    const extraAdmin = adminCreators.filter(
+      (c) => !chainUsernames.has(c.username.toLowerCase()) && !chainUsernames.has(c.address.toLowerCase())
+    );
+
+    return [...enrichedChain, ...extraAdmin];
   }, [chainCreators, adminCreators]);
 
   const content = useMemo<Content[]>(() => adminContent.map((c) => {
