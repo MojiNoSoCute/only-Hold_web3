@@ -189,16 +189,14 @@ export function useChainData(): ChainData {
 
   useEffect(() => {
     pullSync();
-    const interval = setInterval(() => pullSync(), 2000);
+    const interval = setInterval(() => pullSync(), 5000);
     const syncHandler = () => pullSync();
     window.addEventListener('focus', syncHandler);
     window.addEventListener('visibilitychange', syncHandler);
-    window.addEventListener('storage', syncHandler);
     return () => {
       clearInterval(interval);
       window.removeEventListener('focus', syncHandler);
       window.removeEventListener('visibilitychange', syncHandler);
-      window.removeEventListener('storage', syncHandler);
     };
   }, []);
 
@@ -229,34 +227,42 @@ export function useChainData(): ChainData {
   const mergedCreators = useMemo<Creator[]>(() => {
     const adminMap = new Map<string, Creator>();
     adminCreators.forEach((c) => {
-      if (c.username) adminMap.set(c.username.toLowerCase(), c);
-      if (c.address) adminMap.set(c.address.toLowerCase(), c);
-      if (c.id) adminMap.set(c.id.toLowerCase(), c);
+      if (c && c.username) adminMap.set(c.username.toLowerCase(), c);
+      if (c && c.address) adminMap.set(c.address.toLowerCase(), c);
+      if (c && c.id) adminMap.set(c.id.toLowerCase(), c);
     });
 
-    const chainUsernames = new Set(chainCreators.map((c) => c.username.toLowerCase()));
+    const chainUsernames = new Set(
+      chainCreators
+        .map((c) => (c && c.username ? c.username.toLowerCase() : ''))
+        .filter(Boolean)
+    );
 
-    const countPostsForCreator = (uName: string, idStr: string, addrStr: string) => {
-      const u = uName.toLowerCase();
-      const id = idStr.toLowerCase();
-      const addr = addrStr.toLowerCase();
+    const countPostsForCreator = (uName?: string, idStr?: string, addrStr?: string) => {
+      const u = uName ? uName.toLowerCase() : '';
+      const id = idStr ? idStr.toLowerCase() : '';
+      const addr = addrStr ? addrStr.toLowerCase() : '';
       return content.filter(
         (item) =>
-          item.creatorUsername?.toLowerCase() === u ||
-          item.creatorId?.toLowerCase() === id ||
-          item.creatorId?.toLowerCase() === addr
+          (u && item.creatorUsername?.toLowerCase() === u) ||
+          (id && item.creatorId?.toLowerCase() === id) ||
+          (addr && item.creatorId?.toLowerCase() === addr)
       ).length;
     };
 
     const enrichedChain = chainCreators.map((c) => {
-      const custom = adminMap.get(c.username.toLowerCase()) || adminMap.get(c.address.toLowerCase());
-      const base = custom ? {
-        ...c,
-        name: custom.name || c.name,
-        avatar: custom.avatar || c.avatar,
-        coverImage: custom.coverImage || c.coverImage,
-        bio: custom.bio || c.bio,
-      } : c;
+      const uKey = c && c.username ? c.username.toLowerCase() : '';
+      const aKey = c && c.address ? c.address.toLowerCase() : '';
+      const custom = (uKey ? adminMap.get(uKey) : null) || (aKey ? adminMap.get(aKey) : null);
+      const base = custom
+        ? {
+            ...c,
+            name: custom.name || c.name,
+            avatar: custom.avatar || c.avatar,
+            coverImage: custom.coverImage || c.coverImage,
+            bio: custom.bio || c.bio,
+          }
+        : c;
 
       return {
         ...base,
@@ -265,9 +271,12 @@ export function useChainData(): ChainData {
     });
 
     const extraAdmin = adminCreators
-      .filter(
-        (c) => !chainUsernames.has(c.username.toLowerCase()) && !chainUsernames.has(c.address.toLowerCase())
-      )
+      .filter((c) => {
+        if (!c) return false;
+        const u = c.username ? c.username.toLowerCase() : '';
+        const a = c.address ? c.address.toLowerCase() : '';
+        return (!u || !chainUsernames.has(u)) && (!a || !chainUsernames.has(a));
+      })
       .map((c) => ({
         ...c,
         contentCount: countPostsForCreator(c.username, c.id, c.address || ''),

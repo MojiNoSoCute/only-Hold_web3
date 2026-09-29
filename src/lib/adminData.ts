@@ -352,6 +352,8 @@ export function getAdminVersion(): number {
 
 // ─── Global Server Sync API ──────────────────────────────────────────────────
 
+let _lastSyncedVersion = 0;
+
 export async function pushSync(action: string, payloadData?: any): Promise<void> {
   if (typeof window === 'undefined') return;
   try {
@@ -388,6 +390,14 @@ export async function pullSync(): Promise<void> {
 export function applySyncedStore(store: any): void {
   if (typeof window === 'undefined' || !store) return;
   try {
+    const version = Number(store.version ?? 0);
+    if (version > 0 && version === _lastSyncedVersion) {
+      return; // Already synced this version, skip to avoid infinite loop
+    }
+    if (version > 0) {
+      _lastSyncedVersion = version;
+    }
+
     let updated = false;
     if (Array.isArray(store.creators)) {
       localStorage.setItem(KEY_CREATORS, JSON.stringify(store.creators));
