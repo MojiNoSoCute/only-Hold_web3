@@ -1,17 +1,28 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useWeb3 } from '@/lib/Web3Provider';
+import { useOnlyHold } from '@/lib/useOnlyHold';
 import { shortenAddress } from '@/lib/utils';
 import { isAdmin } from '@/lib/adminData';
 import WalletModal from './WalletModal';
 
 export default function Navbar() {
   const { address, isConnected, connect, disconnect, isConnecting } = useWeb3();
+  const { checkIsRegistered } = useOnlyHold();
   const [menuOpen, setMenuOpen] = useState(false);
   const [walletModalOpen, setWalletModalOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [isCreator, setIsCreator] = useState(false);
+
+  useEffect(() => {
+    if (isConnected && address) {
+      checkIsRegistered(address).then((res) => setIsCreator(res.isRegistered));
+    } else {
+      setIsCreator(false);
+    }
+  }, [isConnected, address, checkIsRegistered]);
 
   return (
     <>
@@ -40,9 +51,15 @@ export default function Navbar() {
                 ฟีดของฉัน
               </Link>
             )}
-            <Link href="/become-creator" className="hover:text-white transition-colors">
-              เป็นครีเอเตอร์
-            </Link>
+            {isCreator ? (
+              <Link href="/dashboard" className="px-3 py-1.5 rounded-lg bg-purple-500/10 border border-purple-500/30 text-purple-300 text-xs font-medium hover:bg-purple-500/20 transition-all flex items-center gap-1.5">
+                <span>📊</span> แดชบอร์ดครีเอเตอร์
+              </Link>
+            ) : (
+              <Link href="/become-creator" className="hover:text-white transition-colors">
+                เป็นครีเอเตอร์
+              </Link>
+            )}
           </div>
 
           {/* Right Side */}
@@ -119,7 +136,11 @@ export default function Navbar() {
             {isConnected && (
               <Link href="/feed" className="block text-white/70 hover:text-white py-2" onClick={() => setMenuOpen(false)}>ฟีดของฉัน</Link>
             )}
-            <Link href="/become-creator" className="block text-white/70 hover:text-white py-2" onClick={() => setMenuOpen(false)}>เป็นครีเอเตอร์</Link>
+            {isCreator ? (
+              <Link href="/dashboard" className="block text-purple-300 font-medium py-2" onClick={() => setMenuOpen(false)}>📊 แดชบอร์ดครีเอเตอร์</Link>
+            ) : (
+              <Link href="/become-creator" className="block text-white/70 hover:text-white py-2" onClick={() => setMenuOpen(false)}>เป็นครีเอเตอร์</Link>
+            )}
           </div>
         )}
       </nav>

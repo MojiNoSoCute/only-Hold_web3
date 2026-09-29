@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useWeb3 } from '@/lib/Web3Provider';
 import { useOnlyHold } from '@/lib/useOnlyHold';
 import Link from 'next/link';
@@ -26,7 +26,7 @@ const CATEGORIES = [
 
 export default function BecomeCreatorPage() {
   const { isConnected, address, isWrongNetwork, switchToSepolia } = useWeb3();
-  const { registerCreator, isLoading, FACTORY_ADDRESS } = useOnlyHold();
+  const { registerCreator, checkIsRegistered, isLoading, FACTORY_ADDRESS } = useOnlyHold();
 
   const [walletModalOpen, setWalletModalOpen] = useState(false);
   const [step, setStep] = useState(isConnected ? 2 : 1);
@@ -35,6 +35,20 @@ export default function BecomeCreatorPage() {
   const [nftContractAddress, setNftContractAddress] = useState('');
   const [subContractAddress, setSubContractAddress] = useState('');
   const [error, setError] = useState('');
+  const [existingCreator, setExistingCreator] = useState<{ isRegistered: boolean; username?: string } | null>(null);
+
+  // ── เช็คว่ากระเป๋านี้เป็น creator แล้วหรือยังเมื่อเชื่อมต่อกระเป๋า ──────────
+  useEffect(() => {
+    if (isConnected && address) {
+      checkIsRegistered(address).then((res) => {
+        if (res.isRegistered) {
+          setExistingCreator(res);
+        }
+      });
+    } else {
+      setExistingCreator(null);
+    }
+  }, [isConnected, address, checkIsRegistered]);
 
   const [form, setForm] = useState({
     name: '',
@@ -135,6 +149,31 @@ export default function BecomeCreatorPage() {
       }
     }
   };
+
+  // ── Already registered screen ─────────────────────────────────────────
+
+  if (existingCreator?.isRegistered) {
+    return (
+      <div className="max-w-lg mx-auto px-4 py-24 text-center">
+        <div className="text-6xl mb-6">✨</div>
+        <h1 className="text-3xl font-bold text-white mb-3">คุณเป็นครีเอเตอร์อยู่แล้ว!</h1>
+        <p className="text-white/60 mb-6">
+          กระเป๋าของคุณ <span className="font-mono text-purple-400">{address?.slice(0, 6)}...{address?.slice(-4)}</span> ได้ลงทะเบียนเป็นครีเอเตอร์เรียบร้อยแล้วบน Sepolia Testnet
+        </p>
+
+        <div className="space-y-3">
+          <Link href="/dashboard" className="block w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold hover:opacity-90 transition-all shadow-lg">
+            ไปที่แดชบอร์ดครีเอเตอร์ →
+          </Link>
+          {existingCreator.username && (
+            <Link href={`/creator/${existingCreator.username}`} className="block w-full py-3.5 rounded-xl border border-white/10 text-white/80 hover:bg-white/5 transition-all">
+              ดูหน้าโปรไฟล์ของคุณ (@{existingCreator.username})
+            </Link>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   // ── Success screen ────────────────────────────────────────────────────
 
