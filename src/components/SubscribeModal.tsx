@@ -44,12 +44,14 @@ export default function SubscribeModal({ creatorId, creatorName, onClose }: Subs
   // ── Resolve creator contracts on-chain ──────────────────────────────────
   useEffect(() => {
     resolveUsername(creator.username).then((res) => {
-      if (res) {
+      if (res && res.nftContract && res.nftContract !== '0x0000000000000000000000000000000000000000') {
         setNftContract(res.nftContract);
         setSubContract(res.subContract);
+      } else if ((creator as any).nftContractAddress) {
+        setNftContract((creator as any).nftContractAddress);
       }
     });
-  }, [creator.username, resolveUsername]);
+  }, [creator, resolveUsername]);
 
   // ── Resolve monthly price from contract ─────────────────────────────────
   useEffect(() => {
@@ -69,15 +71,20 @@ export default function SubscribeModal({ creatorId, creatorName, onClose }: Subs
   const handleMintNFT = async () => {
     if (!isConnected) { setWalletModalOpen(true); return; }
     if (isWrongNetwork) { await switchToSepolia(); return; }
-    if (!nftContract) { setError('ไม่พบสัญญา NFT ของครีเอเตอร์นี้บน chain'); return; }
+
+    const targetContract = nftContract || (creator as any).nftContractAddress;
+    if (!targetContract || targetContract === '0x0000000000000000000000000000000000000000') {
+      setError('ไม่พบสัญญา NFT ของครีเอเตอร์นี้บน chain');
+      return;
+    }
 
     setError('');
-    const result = await mintNFT(nftContract, creator.nftPrice || '0.05');
+    const result = await mintNFT(targetContract, creator.nftPrice || '0.05');
     if (result.success) {
       setTxHash(result.hash ?? '');
       setTxSuccess(true);
     } else {
-      setError(result.error ?? 'เกิดข้อผิดพลาด');
+      setError(result.error ?? 'เกิดข้อผิดพลาดในการ Mint NFT');
     }
   };
 

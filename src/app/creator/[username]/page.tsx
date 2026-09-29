@@ -10,6 +10,8 @@ import { useOnlyHold } from '@/lib/useOnlyHold';
 import type { Creator } from '@/lib/types';
 import Link from 'next/link';
 
+import { getAdminCreators } from '@/lib/adminData';
+
 const SEPOLIA_RPC = 'https://ethereum-sepolia.publicnode.com';
 const FACTORY_ADDRESS = process.env.NEXT_PUBLIC_FACTORY_ADDRESS ?? '';
 
@@ -26,7 +28,7 @@ export default function CreatorPage({ params }: CreatorPageProps) {
   const { username } = use(params);
   const { isConnected, address } = useWeb3();
   const { checkAccess } = useOnlyHold();
-  const { content } = useChainData();
+  const { content, creators } = useChainData();
 
   const [subscribeModalOpen, setSubscribeModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'posts' | 'about'>('posts');
@@ -88,28 +90,57 @@ export default function CreatorPage({ params }: CreatorPageProps) {
         const uname: string = profile.username || username;
         const registeredAt: number = Number(profile.registeredAt);
 
+        // Find saved custom profile (avatar, cover, name, bio) from admin store / chain data
+        const localList = getAdminCreators();
+        const custom = localList.find(
+          (c) => c.username?.toLowerCase() === uname.toLowerCase() || c.address?.toLowerCase() === creatorAddr.toLowerCase()
+        ) || creators.find(
+          (c) => c.username?.toLowerCase() === uname.toLowerCase() || c.address?.toLowerCase() === creatorAddr.toLowerCase()
+        );
+
         setCreator({
           id: creatorAddr.toLowerCase(),
           address: creatorAddr,
-          name: uname.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
+          name: custom?.name || uname.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
           username: uname,
-          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${uname}`,
-          coverImage: 'https://images.unsplash.com/photo-1635322966219-b75ed372eb01?w=1200&auto=format&fit=crop',
-          bio: `ครีเอเตอร์บน OnlyHold Sepolia Testnet`,
-          category: 'art',
-          totalSubscribers: 0,
-          totalEarnings: '0',
-          isVerified: false,
+          avatar: custom?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${uname}`,
+          coverImage: custom?.coverImage || 'https://images.unsplash.com/photo-1635322966219-b75ed372eb01?w=1200&auto=format&fit=crop',
+          bio: custom?.bio || `ครีเอเตอร์บน OnlyHold Sepolia Testnet`,
+          category: custom?.category || 'art',
+          totalSubscribers: custom?.totalSubscribers || 0,
+          totalEarnings: custom?.totalEarnings || '0',
+          isVerified: custom?.isVerified || false,
           nftContractAddress: nftAddr !== ethers.ZeroAddress ? nftAddr : undefined,
           nftPrice: nftPrice || undefined,
           stablecoinPrice: stablecoinPrice || undefined,
-          contentCount: 0,
+          contentCount: custom?.contentCount || 0,
           joinedAt: registeredAt > 0 ? new Date(registeredAt * 1000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         });
       })
       .catch(() => setNotFoundState(true))
       .finally(() => setLoadingCreator(false));
   }, [username]);
+
+  // ── Sync custom profile data when useChainData updates ────────────────
+  useEffect(() => {
+    if (!creator) return;
+    const match = creators.find(
+      (c) => c.username?.toLowerCase() === creator.username.toLowerCase() || c.address?.toLowerCase() === creator.address.toLowerCase()
+    );
+    if (match) {
+      setCreator((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          name: match.name || prev.name,
+          avatar: match.avatar || prev.avatar,
+          coverImage: match.coverImage || prev.coverImage,
+          bio: match.bio || prev.bio,
+          category: match.category || prev.category,
+        };
+      });
+    }
+  }, [creators, username]);
 
   // ── Check access ─────────────────────────────────────────────────────
   useEffect(() => {
