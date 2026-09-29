@@ -55,11 +55,20 @@ export default function BecomeCreatorPage() {
 
     setError('');
 
-    // ── ตรวจสอบก่อนว่า address นี้ register ไปแล้วหรือยัง ──────────────
-    if (FACTORY_ADDRESS) {
-      try {
-        const { ethers } = require('ethers');
-        const provider = new ethers.BrowserProvider((window as any).ethereum);
+    // ── ตรวจสอบ ETH balance ก่อน ────────────────────────────────────────
+    try {
+      const { ethers } = require('ethers');
+      const provider = new ethers.BrowserProvider((window as any).ethereum);
+
+      // เช็ค ETH balance
+      const bal = await provider.getBalance(address);
+      if (bal < ethers.parseEther('0.001')) {
+        setError('ETH ไม่เพียงพอสำหรับค่า Gas — ไปรับ Sepolia ETH ฟรีที่ sepoliafaucet.com ก่อน');
+        return;
+      }
+
+      // เช็คว่า register ไปแล้วหรือยัง
+      if (FACTORY_ADDRESS) {
         const factory = new ethers.Contract(
           FACTORY_ADDRESS,
           ['function isRegistered(address) view returns (bool)'],
@@ -70,9 +79,9 @@ export default function BecomeCreatorPage() {
           setError('กระเป๋านี้ได้ลงทะเบียนเป็นครีเอเตอร์ไปแล้ว ไปที่ Dashboard เพื่อจัดการโปรไฟล์ของคุณ');
           return;
         }
-      } catch {
-        // silent — ให้ contract revert เองถ้าจำเป็น
       }
+    } catch {
+      // silent — ให้ contract revert เองถ้าจำเป็น
     }
 
     // monthlyPrice: stablecoinPrice ดอลลาร์ → base units (6 decimals = USDC)
@@ -109,8 +118,8 @@ export default function BecomeCreatorPage() {
         setError('ต้องเลือกอย่างน้อย 1 ระบบ (NFT หรือ Stablecoin)');
       } else if (raw.includes('user rejected') || raw.includes('ACTION_REJECTED')) {
         setError('ยกเลิก Transaction');
-      } else if (raw.includes('insufficient funds')) {
-        setError('ETH ไม่เพียงพอสำหรับค่า Gas กรุณาไป Faucet Sepolia ETH ก่อน');
+      } else if (raw.includes('insufficient funds') || raw.includes('CALL_EXCEPTION') || raw.includes('estimateGas')) {
+        setError('ETH ไม่เพียงพอสำหรับค่า Gas — ไปรับ Sepolia ETH ฟรีที่ sepoliafaucet.com ก่อน');
       } else {
         setError(raw || 'เกิดข้อผิดพลาด กรุณาลองใหม่');
       }
@@ -309,12 +318,20 @@ export default function BecomeCreatorPage() {
               </div>
 
               {error && (
-                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs">
-                  ❌ {error}
+                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs space-y-2">
+                  <p>❌ {error}</p>
                   {(error.includes('ลงทะเบียน') || error.includes('ไปแล้ว')) && (
-                    <div className="mt-2">
-                      <a href="/dashboard" className="inline-block px-3 py-1.5 rounded-lg bg-purple-600 text-white text-xs hover:bg-purple-500 transition-colors">
-                        ไปที่ Dashboard →
+                    <a href="/dashboard" className="inline-block px-3 py-1.5 rounded-lg bg-purple-600 text-white text-xs hover:bg-purple-500 transition-colors">
+                      ไปที่ Dashboard →
+                    </a>
+                  )}
+                  {(error.includes('Gas') || error.includes('ETH')) && (
+                    <div className="flex gap-2 flex-wrap">
+                      <a href="https://sepoliafaucet.com" target="_blank" rel="noopener noreferrer" className="inline-block px-3 py-1.5 rounded-lg bg-blue-600/80 text-white text-xs hover:bg-blue-500 transition-colors">
+                        💧 sepoliafaucet.com →
+                      </a>
+                      <a href="https://faucet.quicknode.com/ethereum/sepolia" target="_blank" rel="noopener noreferrer" className="inline-block px-3 py-1.5 rounded-lg bg-blue-600/80 text-white text-xs hover:bg-blue-500 transition-colors">
+                        💧 quicknode faucet →
                       </a>
                     </div>
                   )}
