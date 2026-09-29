@@ -153,21 +153,24 @@ export default function DashboardPage() {
     if (isWrongNetwork) { await switchToSepolia(); return; }
     setWithdrawing(true);
     setError('');
+    setWithdrawTxHash('');
     try {
       const { ethers } = require('ethers');
       const provider = new ethers.BrowserProvider((window as any).ethereum);
       const signer = await provider.getSigner();
       const sub = new ethers.Contract(
         profile.subscriptionContract,
-        ['function withdrawEarnings()'],
+        ['function withdrawEarnings()', 'function pendingCreatorEarnings() view returns (uint256)'],
         signer
       );
       const tx = await sub.withdrawEarnings();
       const receipt = await tx.wait();
       setWithdrawTxHash(receipt.hash);
-      setPendingEarnings(0n);
+      const remaining = await sub.pendingCreatorEarnings().catch(() => 0n);
+      setPendingEarnings(remaining);
     } catch (err: any) {
-      setError(err.reason ?? err.message ?? 'เกิดข้อผิดพลาด');
+      const msg = err.reason || err.shortMessage || err.message || 'เกิดข้อผิดพลาดในการถอนรายได้';
+      setError(msg);
     } finally {
       setWithdrawing(false);
     }

@@ -323,9 +323,10 @@ export default function CreatorPage({ params }: CreatorPageProps) {
           <div className="mt-6">
             {activeTab === 'posts' ? (
               creatorContent.length === 0 ? (
-                <div className="text-center py-16 text-white/30">
-                  <div className="text-4xl mb-3">📭</div>
-                  <p>ยังไม่มีโพสต์</p>
+                <div className="bg-[#13131a] border border-white/5 rounded-2xl p-12 text-center my-4">
+                  <div className="text-5xl mb-3 opacity-40">📭</div>
+                  <p className="text-white/70 font-semibold text-base mb-1">ยังไม่มีโพสต์จากครีเอเตอร์นี้</p>
+                  <p className="text-white/30 text-xs">ครีเอเตอร์ยังไม่ได้สร้างโพสต์ใหม่ หรืออยู่ในระหว่างการเตรียมคอนเทนต์</p>
                 </div>
               ) : (
                 <div className="grid sm:grid-cols-2 gap-5">

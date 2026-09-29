@@ -2,7 +2,7 @@
 
 /**
  * useChainData — ดึงข้อมูลครีเอเตอร์และ content จาก Sepolia จริง
- * และ merge กับ admin mock data จาก localStorage
+ * และ merge กับ admin data จาก localStorage
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -83,30 +83,41 @@ async function fetchCreatorsFromChain(): Promise<Creator[]> {
           const p = await factory.creatorProfiles(addr);
           const username: string = p.username || `creator_${addr.slice(2, 8)}`;
 
-          // Fetch NFT price
+          // Fetch NFT price & holders
           let nftPrice = '';
+          let nftHolders = 0;
           if (p.nftContract && p.nftContract !== ethers.ZeroAddress) {
             try {
-              const nft = new ethers.Contract(p.nftContract, NFT_ABI, provider);
-              const price = await nft.mintPrice();
-              nftPrice = ethers.formatEther(price);
+              const nft = new ethers.Contract(
+                p.nftContract,
+                [
+                  'function mintPrice() view returns (uint256)',
+                  'function totalSupply() view returns (uint256)',
+                ],
+                provider
+              );
+              const price = await nft.mintPrice().catch(() => 0n);
+              if (price > 0n) nftPrice = ethers.formatEther(price);
+
+              const total = await nft.totalSupply().catch(() => 0n);
+              nftHolders = Number(total);
             } catch {}
           }
 
-          // Fetch monthly sub price
+          // Fetch monthly sub price & subscribers
           let stablecoinPrice = '';
-          let totalSubscribers = 0;
+          let activeSubs = 0;
           if (p.subscriptionContract && p.subscriptionContract !== ethers.ZeroAddress) {
             try {
               const sub = new ethers.Contract(p.subscriptionContract, SUB_ABI, provider);
-              const mp = await sub.monthlyPrice();
-              stablecoinPrice = (Number(mp) / 1_000_000).toFixed(0);
-              try {
-                const count = await sub.activeSubscriberCount();
-                totalSubscribers = Number(count);
-              } catch {}
+              const mp = await sub.monthlyPrice().catch(() => 0n);
+              if (mp > 0n) stablecoinPrice = (Number(mp) / 1_000_000).toFixed(0);
+              const count = await sub.activeSubscriberCount().catch(() => 0n);
+              activeSubs = Number(count);
             } catch {}
           }
+
+          const realSubscribers = nftHolders + activeSubs;
 
           const creator: Creator = {
             id: addr.toLowerCase(),
@@ -117,9 +128,9 @@ async function fetchCreatorsFromChain(): Promise<Creator[]> {
             coverImage: coverUrl(i),
             bio: `ครีเอเตอร์บน OnlyHold Sepolia Testnet — @${username}`,
             category: CATEGORIES_LIST[i % CATEGORIES_LIST.length],
-            totalSubscribers: totalSubscribers || (i + 1) * 3,
+            totalSubscribers: realSubscribers,
             totalEarnings: '0',
-            isVerified: i === 0,
+            isVerified: false,
             nftContractAddress: p.nftContract !== ethers.ZeroAddress ? p.nftContract : undefined,
             nftPrice: nftPrice || undefined,
             stablecoinPrice: stablecoinPrice || undefined,
@@ -187,40 +198,14 @@ export function useChainData(): ChainData {
     load();
   }, [load]);
 
-  // ── Merge chain creators + admin mock creators ───────────────────────────
+  // ── Merge chain creators + admin data ───────────────────────────────────
   const adminCreators = useMemo(() => getAdminCreators(), [adminVersion]);
   const adminContent  = useMemo(() => getAdminContent(),  [adminVersion]);
 
-  // Prepare full content array, adding dynamic posts for creators without posts
+  // Real content created by creators
   const content = useMemo<Content[]>(() => {
-    const baseContent = [...adminContent];
-    const existingUsernames = new Set(baseContent.map((c) => c.creatorUsername?.toLowerCase()));
-
-    // For any chain creator without posts in adminContent, add default posts
-    chainCreators.forEach((c) => {
-      const uname = c.username?.toLowerCase();
-      if (uname && !existingUsernames.has(uname)) {
-        baseContent.push({
-          id: `seed_${uname}_1`,
-          creatorId: c.id,
-          creatorName: c.name,
-          creatorUsername: c.username,
-          creatorAvatar: c.avatar,
-          title: `ยินดีต้อนรับสู่โปรไฟล์ของ ${c.name} ✨`,
-          description: `สวัสดีทุกคนครับ/ค่ะ! ติดตามผลงานและคอนเทนต์พิเศษของ ${c.name} บน OnlyHold ได้เลยนะคะ`,
-          thumbnail: c.coverImage || 'https://images.unsplash.com/photo-1635322966219-b75ed372eb01?w=1200&auto=format&fit=crop',
-          type: 'image',
-          isExclusive: false,
-          likes: 18,
-          comments: 2,
-          createdAt: new Date().toISOString(),
-          tags: [c.category, 'welcome'],
-        });
-      }
-    });
-
-    return baseContent;
-  }, [adminContent, chainCreators]);
+    return adminContent;
+  }, [adminContent]);
 
   const mergedCreators = useMemo<Creator[]>(() => {
     const adminMap = new Map<string, Creator>();

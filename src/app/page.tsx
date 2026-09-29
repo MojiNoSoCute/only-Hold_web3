@@ -232,7 +232,7 @@ export default function HomePage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {filteredContent.map((c) => (
-                <ContentCard key={c.id} content={c} isSubscribed={false} />
+                <ContentCard key={c.id} content={c} />
               ))}
             </div>
           )}

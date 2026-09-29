@@ -153,11 +153,12 @@ export default function FeedPage() {
                 const creator = creators.find(
                   (cr) =>
                     cr.username?.toLowerCase() === c.creatorUsername?.toLowerCase() ||
-                    cr.id?.toLowerCase() === c.creatorId?.toLowerCase()
+                    cr.id?.toLowerCase() === c.creatorId?.toLowerCase() ||
+                    cr.address?.toLowerCase() === c.creatorId?.toLowerCase()
                 );
                 const hasSub =
                   (creator && accessMap[creator.id]?.hasAccess) ||
-                  (address && c.creatorId?.toLowerCase() === address.toLowerCase());
+                  (address && (c.creatorId?.toLowerCase() === address.toLowerCase() || c.creatorUsername?.toLowerCase() === address.toLowerCase()));
                 return <ContentCard key={c.id} content={c} isSubscribed={Boolean(hasSub)} />;
               })}
             </div>

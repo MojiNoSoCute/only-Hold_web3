@@ -6,6 +6,7 @@ import { timeAgo, formatNumber, CONTENT_TYPE_ICONS, compressImageFile } from '@/
 import Link from 'next/link';
 import SubscribeModal from './SubscribeModal';
 import { useWeb3 } from '@/lib/Web3Provider';
+import { useOnlyHold } from '@/lib/useOnlyHold';
 import { getAdminCreators } from '@/lib/adminData';
 
 interface PostDetailModalProps {
@@ -25,11 +26,29 @@ interface CommentItem {
 
 export default function PostDetailModal({ content, isSubscribed = false, onClose }: PostDetailModalProps) {
   const { isConnected, address } = useWeb3();
+  const { checkAccess } = useOnlyHold();
 
   const [liked, setLiked] = useState(content.isLiked || false);
   const [likeCount, setLikeCount] = useState(content.likes);
   const [subscribeModalOpen, setSubscribeModalOpen] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [hasOnChainAccess, setHasOnChainAccess] = useState(false);
+
+  // Check on-chain access
+  useEffect(() => {
+    if (isSubscribed) {
+      setHasOnChainAccess(true);
+      return;
+    }
+    if (!isConnected || !address || !content.isExclusive) return;
+
+    const target = content.creatorId || content.creatorUsername;
+    if (!target) return;
+
+    checkAccess(target).then((res) => {
+      if (res.hasAccess) setHasOnChainAccess(true);
+    });
+  }, [content, isSubscribed, isConnected, address, checkAccess]);
 
   // Local comments
   const [comments, setComments] = useState<CommentItem[]>([]);
@@ -39,7 +58,7 @@ export default function PostDetailModal({ content, isSubscribed = false, onClose
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const canView = !content.isExclusive || isSubscribed;
+  const canView = !content.isExclusive || isSubscribed || hasOnChainAccess;
   const storageKey = `onlyhold_comments_${content.id}`;
 
   // Load comments from localStorage
@@ -416,9 +435,17 @@ export default function PostDetailModal({ content, isSubscribed = false, onClose
 
       {subscribeModalOpen && (
         <SubscribeModal
-          creatorId={content.creatorId}
+          creatorId={content.creatorId || content.creatorUsername}
           creatorName={content.creatorName}
-          onClose={() => setSubscribeModalOpen(false)}
+          onClose={() => {
+            setSubscribeModalOpen(false);
+            const target = content.creatorId || content.creatorUsername;
+            if (target) {
+              checkAccess(target).then((res) => {
+                if (res.hasAccess) setHasOnChainAccess(true);
+              });
+            }
+          }}
         />
       )}
     </>

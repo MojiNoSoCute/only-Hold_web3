@@ -102,7 +102,7 @@ function parseContractError(err: any): string {
 
 export interface AccessResult {
   hasAccess: boolean;
-  via: 'nft' | 'subscription' | 'none';
+  via: 'nft' | 'subscription' | 'owner' | 'none';
 }
 
 export interface SubscriptionInfo {
@@ -151,13 +151,37 @@ export function useOnlyHold() {
   // ── checkAccess ───────────────────────────────────────────────────────────
 
   const checkAccess = useCallback(
-    async (creatorAddress: string): Promise<AccessResult> => {
+    async (creatorAddressOrUsername: string): Promise<AccessResult> => {
       if (!isConnected || !address || !FACTORY_ADDRESS)
         return { hasAccess: false, via: 'none' };
       try {
         const contract = getReadContract(FACTORY_ADDRESS, FACTORY_ABI);
         if (!contract) return { hasAccess: false, via: 'none' };
-        const [hasAccess, via] = await contract.checkAccess(creatorAddress, address);
+
+        let targetAddress = creatorAddressOrUsername;
+
+        if (targetAddress.toLowerCase() === address.toLowerCase()) {
+          return { hasAccess: true, via: 'owner' };
+        }
+
+        if (!targetAddress.startsWith('0x')) {
+          try {
+            const [resolvedCreator] = await contract.resolveUsername(targetAddress);
+            if (resolvedCreator && resolvedCreator !== '0x0000000000000000000000000000000000000000') {
+              targetAddress = resolvedCreator;
+            } else {
+              return { hasAccess: false, via: 'none' };
+            }
+          } catch {
+            return { hasAccess: false, via: 'none' };
+          }
+        }
+
+        if (targetAddress.toLowerCase() === address.toLowerCase()) {
+          return { hasAccess: true, via: 'owner' };
+        }
+
+        const [hasAccess, via] = await contract.checkAccess(targetAddress, address);
         return { hasAccess, via };
       } catch {
         return { hasAccess: false, via: 'none' };

@@ -168,21 +168,23 @@ export default function ProfilePage() {
     load().catch((e) => setError(String(e))).finally(() => setLoading(false));
   }, [isConnected, address]);
 
-  // ── Cancel subscription ──────────────────────────────────────────────────
+  // ── Cancel subscription & withdraw refund ─────────────────────────────────
   const handleCancel = async (sub: SubItem) => {
     if (isWrongNetwork) { await switchToSepolia(); return; }
     setCancellingFor(sub.subContract);
+    setError('');
     try {
       const { ethers } = require('ethers');
       const provider = new ethers.BrowserProvider((window as any).ethereum);
       const signer = await provider.getSigner();
       const contract = new ethers.Contract(sub.subContract, SUB_ABI, signer);
       const tx = await contract.withdrawBalance();
-      await tx.wait();
-      // Remove from list
+      const receipt = await tx.wait();
+      alert(`ถอนเงินคืนและยกเลิกสมาชิกสำเร็จ!\nTx: ${receipt.hash}`);
       setSubs((prev) => prev.filter((s) => s.subContract !== sub.subContract));
     } catch (e: any) {
-      setError(e.reason ?? e.message ?? 'ยกเลิกไม่สำเร็จ');
+      const msg = e.reason || e.shortMessage || e.message || 'เกิดข้อผิดพลาดในการยกเลิกและถอนเงิน';
+      setError(msg);
     } finally {
       setCancellingFor(null);
     }
