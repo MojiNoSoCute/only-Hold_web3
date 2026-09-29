@@ -55,6 +55,24 @@ export default function BecomeCreatorPage() {
 
     setError('');
 
+    // ── ตรวจสอบก่อนว่า address นี้ register ไปแล้วหรือยัง ──────────────
+    try {
+      const { ethers } = require('ethers');
+      const provider = new ethers.BrowserProvider((window as any).ethereum);
+      const factory = new ethers.Contract(
+        process.env.NEXT_PUBLIC_FACTORY_ADDRESS ?? '',
+        ['function isRegistered(address) view returns (bool)'],
+        provider
+      );
+      const alreadyRegistered = await factory.isRegistered(address);
+      if (alreadyRegistered) {
+        setError('กระเป๋านี้ได้ลงทะเบียนเป็นครีเอเตอร์ไปแล้ว ไม่สามารถสมัครซ้ำได้ ไปที่ Dashboard เพื่อจัดการโปรไฟล์ของคุณ');
+        return;
+      }
+    } catch (e) {
+      // ถ้าเช็คไม่ได้ ให้ผ่าน (contract จะ revert เองถ้าซ้ำ)
+    }
+
     // monthlyPrice: stablecoinPrice ดอลลาร์ → base units (6 decimals = USDC)
     const monthlyPriceUnits = BigInt(Math.round(parseFloat(form.stablecoinPrice) * 1_000_000));
 
@@ -77,7 +95,23 @@ export default function BecomeCreatorPage() {
       setSubContractAddress(result.subContract ?? '');
       setLaunched(true);
     } else {
-      setError(result.error ?? 'เกิดข้อผิดพลาด กรุณาลองใหม่');
+      // แปล error จาก contract ให้อ่านง่าย
+      const raw = result.error ?? '';
+      if (raw.includes('AlreadyRegistered') || raw.includes('require(false)')) {
+        setError('กระเป๋านี้ลงทะเบียนเป็นครีเอเตอร์ไปแล้ว ไปที่ Dashboard เพื่อจัดการโปรไฟล์');
+      } else if (raw.includes('UsernameTaken')) {
+        setError('ชื่อผู้ใช้นี้ถูกใช้ไปแล้ว กรุณาเลือกชื่อใหม่');
+      } else if (raw.includes('InvalidUsername')) {
+        setError('ชื่อผู้ใช้ไม่ถูกต้อง ใช้ได้เฉพาะตัวอักษร a-z, 0-9 และ _ เท่านั้น');
+      } else if (raw.includes('MustEnableAtLeastOne')) {
+        setError('ต้องเลือกอย่างน้อย 1 ระบบ (NFT หรือ Stablecoin)');
+      } else if (raw.includes('user rejected') || raw.includes('ACTION_REJECTED')) {
+        setError('ยกเลิก Transaction');
+      } else if (raw.includes('insufficient funds')) {
+        setError('ETH ไม่เพียงพอสำหรับค่า Gas กรุณาไป Faucet Sepolia ETH ก่อน');
+      } else {
+        setError(raw || 'เกิดข้อผิดพลาด กรุณาลองใหม่');
+      }
     }
   };
 
@@ -275,6 +309,13 @@ export default function BecomeCreatorPage() {
               {error && (
                 <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs">
                   ❌ {error}
+                  {(error.includes('ลงทะเบียน') || error.includes('ไปแล้ว')) && (
+                    <div className="mt-2">
+                      <a href="/dashboard" className="inline-block px-3 py-1.5 rounded-lg bg-purple-600 text-white text-xs hover:bg-purple-500 transition-colors">
+                        ไปที่ Dashboard →
+                      </a>
+                    </div>
+                  )}
                 </div>
               )}
 
