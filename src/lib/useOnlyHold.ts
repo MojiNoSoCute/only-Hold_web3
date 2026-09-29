@@ -368,15 +368,17 @@ export function useOnlyHold() {
           ethers.ZeroAddress,
         ];
 
-        // simulate ก่อนส่งจริง เพื่อ decode revert reason
-        try {
-          await factory.launchCreator.staticCall(
-            launchArgs[0], launchArgs[1], launchArgs[2], launchArgs[3],
-            launchArgs[4], launchArgs[5], launchArgs[6], launchArgs[7],
-            launchArgs[8], launchArgs[9], launchArgs[10]
-          );
-        } catch (simErr: any) {
-          throw simErr;
+        // simulate ด้วย provider (read-only) เพื่อ decode revert reason ก่อนส่ง tx จริง
+        const readFactory = getReadContract(FACTORY_ADDRESS, FACTORY_ABI);
+        if (readFactory) {
+          try {
+            await readFactory.launchCreator.staticCall(
+              ...launchArgs,
+              { from: address }
+            );
+          } catch (simErr: any) {
+            throw simErr;
+          }
         }
 
         const tx = await factory.launchCreator(
