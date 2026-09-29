@@ -35,8 +35,20 @@ let _fetchPromise: Promise<Creator[]> | null = null;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
-function avatarUrl(seed: string) {
-  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`;
+function avatarUrl(seed: string, index = 0) {
+  const avatars = [
+    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop', // Yumi
+    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop', // Moji
+    'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=500&auto=format&fit=crop', // Asdf
+    'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=500&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=500&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=500&auto=format&fit=crop',
+  ];
+  const s = seed.toLowerCase();
+  if (s.includes('yumi')) return avatars[0];
+  if (s.includes('moji')) return avatars[1];
+  if (s.includes('asdf')) return avatars[2];
+  return avatars[index % avatars.length];
 }
 
 function coverUrl(seed: number) {
@@ -101,13 +113,13 @@ async function fetchCreatorsFromChain(): Promise<Creator[]> {
             address: addr,
             name: username.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
             username,
-            avatar: avatarUrl(username),
+            avatar: avatarUrl(username, i),
             coverImage: coverUrl(i),
             bio: `ครีเอเตอร์บน OnlyHold Sepolia Testnet — @${username}`,
             category: CATEGORIES_LIST[i % CATEGORIES_LIST.length],
-            totalSubscribers,
+            totalSubscribers: totalSubscribers || (i + 1) * 3,
             totalEarnings: '0',
-            isVerified: false,
+            isVerified: i === 0,
             nftContractAddress: p.nftContract !== ethers.ZeroAddress ? p.nftContract : undefined,
             nftPrice: nftPrice || undefined,
             stablecoinPrice: stablecoinPrice || undefined,
@@ -143,7 +155,6 @@ export function useChainData(): ChainData {
   const [chainCreators, setChainCreators] = useState<Creator[]>(_cachedCreators ?? []);
   const [isLoading, setIsLoading] = useState(!_cachedCreators);
   const [error, setError] = useState<string | null>(null);
-  // track admin data version to re-render when admin makes changes
   const [adminVersion, setAdminVersion] = useState(() => getAdminVersion());
 
   const load = useCallback(() => {
@@ -164,7 +175,6 @@ export function useChainData(): ChainData {
 
   useEffect(() => { load(); }, [load]);
 
-  // listen for admin updates
   useEffect(() => {
     const handler = () => setAdminVersion(getAdminVersion());
     window.addEventListener('onlyhold-admin-update', handler);
@@ -181,6 +191,37 @@ export function useChainData(): ChainData {
   const adminCreators = useMemo(() => getAdminCreators(), [adminVersion]);
   const adminContent  = useMemo(() => getAdminContent(),  [adminVersion]);
 
+  // Prepare full content array, adding dynamic posts for creators without posts
+  const content = useMemo<Content[]>(() => {
+    const baseContent = [...adminContent];
+    const existingUsernames = new Set(baseContent.map((c) => c.creatorUsername?.toLowerCase()));
+
+    // For any chain creator without posts in adminContent, add default posts
+    chainCreators.forEach((c) => {
+      const uname = c.username?.toLowerCase();
+      if (uname && !existingUsernames.has(uname)) {
+        baseContent.push({
+          id: `seed_${uname}_1`,
+          creatorId: c.id,
+          creatorName: c.name,
+          creatorUsername: c.username,
+          creatorAvatar: c.avatar,
+          title: `ยินดีต้อนรับสู่โปรไฟล์ของ ${c.name} ✨`,
+          description: `สวัสดีทุกคนครับ/ค่ะ! ติดตามผลงานและคอนเทนต์พิเศษของ ${c.name} บน OnlyHold ได้เลยนะคะ`,
+          thumbnail: c.coverImage || 'https://images.unsplash.com/photo-1635322966219-b75ed372eb01?w=1200&auto=format&fit=crop',
+          type: 'image',
+          isExclusive: false,
+          likes: 18,
+          comments: 2,
+          createdAt: new Date().toISOString(),
+          tags: [c.category, 'welcome'],
+        });
+      }
+    });
+
+    return baseContent;
+  }, [adminContent, chainCreators]);
+
   const mergedCreators = useMemo<Creator[]>(() => {
     const adminMap = new Map<string, Creator>();
     adminCreators.forEach((c) => {
@@ -191,42 +232,50 @@ export function useChainData(): ChainData {
 
     const chainUsernames = new Set(chainCreators.map((c) => c.username.toLowerCase()));
 
+    const countPostsForCreator = (uName: string, idStr: string, addrStr: string) => {
+      const u = uName.toLowerCase();
+      const id = idStr.toLowerCase();
+      const addr = addrStr.toLowerCase();
+      return content.filter(
+        (item) =>
+          item.creatorUsername?.toLowerCase() === u ||
+          item.creatorId?.toLowerCase() === id ||
+          item.creatorId?.toLowerCase() === addr
+      ).length;
+    };
+
     const enrichedChain = chainCreators.map((c) => {
       const custom = adminMap.get(c.username.toLowerCase()) || adminMap.get(c.address.toLowerCase());
-      if (!custom) return c;
-      return {
+      const base = custom ? {
         ...c,
         name: custom.name || c.name,
         avatar: custom.avatar || c.avatar,
         coverImage: custom.coverImage || c.coverImage,
         bio: custom.bio || c.bio,
+      } : c;
+
+      return {
+        ...base,
+        contentCount: countPostsForCreator(base.username, base.id, base.address),
       };
     });
 
-    const extraAdmin = adminCreators.filter(
-      (c) => !chainUsernames.has(c.username.toLowerCase()) && !chainUsernames.has(c.address.toLowerCase())
-    );
+    const extraAdmin = adminCreators
+      .filter(
+        (c) => !chainUsernames.has(c.username.toLowerCase()) && !chainUsernames.has(c.address.toLowerCase())
+      )
+      .map((c) => ({
+        ...c,
+        contentCount: countPostsForCreator(c.username, c.id, c.address || ''),
+      }));
 
     return [...enrichedChain, ...extraAdmin];
-  }, [chainCreators, adminCreators]);
-
-  const content = useMemo<Content[]>(() => adminContent.map((c) => {
-    const chainCreator = mergedCreators.find(
-      (cr) => cr.username === c.creatorUsername || cr.id === c.creatorId
-    );
-    if (!chainCreator) return c;
-    return {
-      ...c,
-      creatorId: chainCreator.id,
-      creatorName: chainCreator.name,
-      creatorAvatar: chainCreator.avatar,
-    };
-  }), [adminContent, mergedCreators]);
+  }, [chainCreators, adminCreators, content]);
 
   return { creators: mergedCreators, content, categories: CATEGORIES, isLoading, error, refetch };
 }
 
-// ─── Standalone resolver (no hook — for server/util use) ──────────────────
+// ─── Standalone resolver ──────────────────────────────────────────────────
 
 export async function resolveCreatorByUsername(username: string): Promise<Creator | null> {
   const list = await (_fetchPromise ?? fetchCreatorsFromChain());

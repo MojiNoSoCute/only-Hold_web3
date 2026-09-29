@@ -188,7 +188,10 @@ export default function CreatorPage({ params }: CreatorPageProps) {
   }
 
   const creatorContent = content.filter(
-    (c) => c.creatorUsername === creator.username || c.creatorId === creator.id
+    (c) =>
+      c.creatorUsername?.toLowerCase() === creator.username.toLowerCase() ||
+      c.creatorId?.toLowerCase() === creator.id.toLowerCase() ||
+      c.creatorId?.toLowerCase() === creator.address.toLowerCase()
   );
 
   return (
@@ -254,7 +257,7 @@ export default function CreatorPage({ params }: CreatorPageProps) {
               <p className="text-white/40 text-xs">แฟนคลับ</p>
             </div>
             <div className="bg-[#13131a] border border-white/5 rounded-xl p-3 text-center">
-              <p className="text-white font-bold text-lg">{creator.contentCount}</p>
+              <p className="text-white font-bold text-lg">{creatorContent.length}</p>
               <p className="text-white/40 text-xs">โพสต์</p>
             </div>
             <div className="bg-[#13131a] border border-white/5 rounded-xl p-3 text-center">
