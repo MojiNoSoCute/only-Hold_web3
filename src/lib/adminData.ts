@@ -390,15 +390,24 @@ export function applySyncedStore(store: any): void {
       const rawLocal = localStorage.getItem(KEY_CREATORS);
       const localCreators: Creator[] = rawLocal ? JSON.parse(rawLocal) : [];
       const map = new Map<string, Creator>();
-      store.creators.forEach((c: Creator) => {
-        if (c && c.id) map.set(c.id.toLowerCase(), c);
-      });
+
+      // 1. Put local creators in map first
       localCreators.forEach((c: Creator) => {
-        if (c && c.id) {
-          const key = c.id.toLowerCase();
-          map.set(key, { ...(map.get(key) || {}), ...c });
+        if (!c) return;
+        const key = (c.username || c.id || '').toLowerCase();
+        if (key) map.set(key, c);
+      });
+
+      // 2. Apply server creators ON TOP so server updates override local cache
+      store.creators.forEach((c: Creator) => {
+        if (!c) return;
+        const key = (c.username || c.id || '').toLowerCase();
+        if (key) {
+          const local = map.get(key);
+          map.set(key, local ? { ...local, ...c } : c);
         }
       });
+
       localStorage.setItem(KEY_CREATORS, JSON.stringify(Array.from(map.values())));
       updated = true;
     }
@@ -407,14 +416,20 @@ export function applySyncedStore(store: any): void {
       const rawLocal = localStorage.getItem(KEY_CONTENT);
       const localContent: Content[] = rawLocal ? JSON.parse(rawLocal) : [];
       const map = new Map<string, Content>();
-      store.content.forEach((c: Content) => {
+
+      // 1. Put local content in map first
+      localContent.forEach((c: Content) => {
         if (c && c.id) map.set(c.id, c);
       });
-      localContent.forEach((c: Content) => {
-        if (c && c.id && !map.has(c.id)) {
-          map.set(c.id, c);
+
+      // 2. Apply server content ON TOP so server content updates override local cache
+      store.content.forEach((c: Content) => {
+        if (c && c.id) {
+          const local = map.get(c.id);
+          map.set(c.id, local ? { ...local, ...c } : c);
         }
       });
+
       localStorage.setItem(KEY_CONTENT, JSON.stringify(Array.from(map.values())));
       updated = true;
     }
