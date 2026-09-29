@@ -41,16 +41,16 @@ const SUB_ABI = [
   'error NoBalanceToWithdraw()',
 ];
 
-// ── FACTORY ABI — flat 11 params matching OnlyHoldFactory.sol exactly ─────
+// ── FACTORY ABI — matching OnlyHoldFactory.sol struct tuples exactly ─────────────
 const FACTORY_ABI = [
   'function checkAccess(address creatorAddress, address fan) view returns (bool hasAccess, string via)',
   'function resolveUsername(string username) view returns (address creator, address nft, address sub)',
-  'function launchCreator(string username, string metadataURI, bool enableNFT, string nftName, string nftSymbol, uint256 nftMintPrice, uint256 nftMaxSupply, string nftBaseURI, bool enableSub, uint256 monthlyPrice, address customStablecoin) returns (address nftContract, address subContract)',
+  'function launchCreator(string username, string metadataURI, (bool enable, string name, string symbol, uint256 mintPrice, uint256 maxSupply, string baseURI) nft, (bool enable, uint256 monthlyPrice, address customStablecoin) sub) returns (address nftContract, address subContract)',
   'function creatorProfiles(address) view returns (address creatorAddress, address nftContract, address subscriptionContract, string username, string metadataURI, uint256 registeredAt, bool isActive)',
   'function isRegistered(address) view returns (bool)',
   // custom errors
   'error AlreadyRegistered()',
-  'error UsernameTaken(string username)',
+  'error UsernameTaken()',
   'error Blacklisted()',
   'error MustEnableAtLeastOne()',
   'error InvalidUsername()',
@@ -325,19 +325,23 @@ export function useOnlyHold() {
         if (!factoryPromise) return { success: false, error: 'No provider' };
         const factory = await factoryPromise;
 
-        // flat params — must match contract signature exactly
+        // Struct tuples matching Solidity: launchCreator(string, string, NFTParams, SubParams)
         const tx = await factory.launchCreator(
           params.username,
           params.metadataURI,
-          params.enableNFT,
-          params.nftName,
-          params.nftSymbol,
-          ethers.parseEther(params.nftMintPrice),
-          params.nftMaxSupply,
-          params.nftBaseURI,
-          params.enableSub,
-          params.monthlyPrice,
-          ethers.ZeroAddress          // use platform default stablecoin
+          {
+            enable: params.enableNFT,
+            name: params.nftName || `${params.username} Pass`,
+            symbol: params.nftSymbol || params.username.toUpperCase().slice(0, 5),
+            mintPrice: ethers.parseEther(params.nftMintPrice || '0'),
+            maxSupply: params.nftMaxSupply || 0,
+            baseURI: params.nftBaseURI || '',
+          },
+          {
+            enable: params.enableSub,
+            monthlyPrice: params.monthlyPrice || 0n,
+            customStablecoin: ethers.ZeroAddress,
+          }
         );
 
         const receipt = await tx.wait();
