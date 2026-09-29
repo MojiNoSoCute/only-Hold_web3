@@ -282,7 +282,9 @@ export function useChainData(): ChainData {
         contentCount: countPostsForCreator(c.username, c.id, c.address || ''),
       }));
 
-    return [...enrichedChain, ...extraAdmin];
+    return [...enrichedChain, ...extraAdmin].filter(
+      (c) => c && c.id && c.id.trim() !== '' && c.username && c.username.trim() !== ''
+    );
   }, [chainCreators, adminCreators, adminContent]);
 
   // Real content created by creators, dynamically enriched with creator's latest live profile

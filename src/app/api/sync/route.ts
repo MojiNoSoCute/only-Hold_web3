@@ -138,6 +138,9 @@ async function getStore(): Promise<SyncStore> {
         c.title &&
         (c.creatorName || c.creatorUsername || c.creatorId)
     );
+    globalStore._onlyhold_sync_store.creators = globalStore._onlyhold_sync_store.creators.filter(
+      (c: any) => c && c.id && c.id.trim() !== '' && c.username && c.username.trim() !== ''
+    );
     return globalStore._onlyhold_sync_store;
   }
   const cloudData = await fetchFromCloud();
@@ -149,6 +152,9 @@ async function getStore(): Promise<SyncStore> {
         !MOCK_POST_IDS.has(c.id) &&
         c.title &&
         (c.creatorName || c.creatorUsername || c.creatorId)
+    );
+    cloudData.creators = cloudData.creators.filter(
+      (c: any) => c && c.id && c.id.trim() !== '' && c.username && c.username.trim() !== ''
     );
     globalStore._onlyhold_sync_store = cloudData;
   } else {

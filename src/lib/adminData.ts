@@ -147,7 +147,16 @@ export function getAdminCreators(): Creator[] {
       });
       baseList = merged;
     }
-    return baseList.filter((c) => c && (!c.id || !deleted.has(c.id)) && (!c.username || !deleted.has(c.username)));
+    return baseList.filter(
+      (c) =>
+        c &&
+        c.id &&
+        c.id.trim() !== '' &&
+        c.username &&
+        c.username.trim() !== '' &&
+        !deleted.has(c.id) &&
+        !deleted.has(c.username)
+    );
   } catch {
     return INITIAL_GLOBAL_CREATORS;
   }
