@@ -19,6 +19,38 @@ export function isAdmin(address: string | null | undefined): boolean {
 
 const KEY_CREATORS = 'onlyhold_mock_creators';
 const KEY_CONTENT  = 'onlyhold_mock_content';
+const KEY_DELETED_CONTENT = 'onlyhold_deleted_content';
+const KEY_DELETED_CREATORS = 'onlyhold_deleted_creators';
+
+function getDeletedContentIds(): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = localStorage.getItem(KEY_DELETED_CONTENT);
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+function saveDeletedContentIds(set: Set<string>): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(KEY_DELETED_CONTENT, JSON.stringify(Array.from(set)));
+}
+
+function getDeletedCreatorIds(): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = localStorage.getItem(KEY_DELETED_CREATORS);
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+function saveDeletedCreatorIds(set: Set<string>): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(KEY_DELETED_CREATORS, JSON.stringify(Array.from(set)));
+}
 
 // ─── Global Base Creators & Content (Shared across all devices/browsers) ───
 
@@ -157,17 +189,24 @@ export const INITIAL_GLOBAL_CONTENT: Content[] = [
 export function getAdminCreators(): Creator[] {
   if (typeof window === 'undefined') return INITIAL_GLOBAL_CREATORS;
   try {
+    const deleted = getDeletedCreatorIds();
     const raw = localStorage.getItem(KEY_CREATORS);
-    if (!raw) return INITIAL_GLOBAL_CREATORS;
-    const parsed = JSON.parse(raw) as Creator[];
-    const existingIds = new Set(parsed.map((c) => c.username?.toLowerCase()));
-    const merged = [...parsed];
-    INITIAL_GLOBAL_CREATORS.forEach((c) => {
-      if (!existingIds.has(c.username?.toLowerCase())) {
-        merged.push(c);
-      }
-    });
-    return merged;
+    let baseList: Creator[] = [];
+    if (!raw) {
+      baseList = INITIAL_GLOBAL_CREATORS;
+    } else {
+      const parsed = JSON.parse(raw) as Creator[];
+      const existingIds = new Set(parsed.map((c) => c.username?.toLowerCase() || c.id?.toLowerCase()));
+      const merged = [...parsed];
+      INITIAL_GLOBAL_CREATORS.forEach((c) => {
+        const uKey = c.username?.toLowerCase() || c.id?.toLowerCase();
+        if (!existingIds.has(uKey) && !deleted.has(c.id) && !deleted.has(c.username)) {
+          merged.push(c);
+        }
+      });
+      baseList = merged;
+    }
+    return baseList.filter((c) => !deleted.has(c.id) && !deleted.has(c.username));
   } catch {
     return INITIAL_GLOBAL_CREATORS;
   }
@@ -180,6 +219,12 @@ export function saveAdminCreators(creators: Creator[]): void {
 }
 
 export function addAdminCreator(creator: Creator): void {
+  const deleted = getDeletedCreatorIds();
+  if (deleted.has(creator.id) || (creator.username && deleted.has(creator.username))) {
+    deleted.delete(creator.id);
+    if (creator.username) deleted.delete(creator.username);
+    saveDeletedCreatorIds(deleted);
+  }
   const list = getAdminCreators();
   list.push(creator);
   saveAdminCreators(list);
@@ -191,10 +236,26 @@ export function updateAdminCreator(updated: Creator): void {
 }
 
 export function deleteAdminCreator(id: string): void {
-  const list = getAdminCreators().filter((c) => c.id !== id);
+  if (typeof window === 'undefined') return;
+  const deleted = getDeletedCreatorIds();
+  deleted.add(id);
+  const target = getAdminCreators().find((c) => c.id === id || c.username === id);
+  if (target) {
+    deleted.add(target.id);
+    if (target.username) deleted.add(target.username);
+  }
+  saveDeletedCreatorIds(deleted);
+
+  const list = getAdminCreators().filter((c) => c.id !== id && c.username !== id);
   saveAdminCreators(list);
-  const content = getAdminContent().filter((c) => c.creatorId !== id);
-  saveAdminContent(content);
+
+  // Delete creator's content as well
+  const content = getAdminContent();
+  content.forEach((item) => {
+    if (item.creatorId === id || item.creatorUsername === id) {
+      deleteAdminContent(item.id);
+    }
+  });
 }
 
 // ─── Content ────────────────────────────────────────────────────────────────
@@ -202,17 +263,23 @@ export function deleteAdminCreator(id: string): void {
 export function getAdminContent(): Content[] {
   if (typeof window === 'undefined') return INITIAL_GLOBAL_CONTENT;
   try {
+    const deleted = getDeletedContentIds();
     const raw = localStorage.getItem(KEY_CONTENT);
-    if (!raw) return INITIAL_GLOBAL_CONTENT;
-    const parsed = JSON.parse(raw) as Content[];
-    const existingIds = new Set(parsed.map((c) => c.id));
-    const merged = [...parsed];
-    INITIAL_GLOBAL_CONTENT.forEach((c) => {
-      if (!existingIds.has(c.id)) {
-        merged.push(c);
-      }
-    });
-    return merged;
+    let baseList: Content[] = [];
+    if (!raw) {
+      baseList = INITIAL_GLOBAL_CONTENT;
+    } else {
+      const parsed = JSON.parse(raw) as Content[];
+      const existingIds = new Set(parsed.map((c) => c.id));
+      const merged = [...parsed];
+      INITIAL_GLOBAL_CONTENT.forEach((c) => {
+        if (!existingIds.has(c.id) && !deleted.has(c.id)) {
+          merged.push(c);
+        }
+      });
+      baseList = merged;
+    }
+    return baseList.filter((c) => !deleted.has(c.id));
   } catch {
     return INITIAL_GLOBAL_CONTENT;
   }
@@ -225,6 +292,11 @@ export function saveAdminContent(content: Content[]): void {
 }
 
 export function addAdminContent(item: Content): void {
+  const deleted = getDeletedContentIds();
+  if (deleted.has(item.id)) {
+    deleted.delete(item.id);
+    saveDeletedContentIds(deleted);
+  }
   const list = getAdminContent();
   list.unshift(item);
   saveAdminContent(list);
@@ -236,6 +308,11 @@ export function updateAdminContent(updated: Content): void {
 }
 
 export function deleteAdminContent(id: string): void {
+  if (typeof window === 'undefined') return;
+  const deleted = getDeletedContentIds();
+  deleted.add(id);
+  saveDeletedContentIds(deleted);
+
   const list = getAdminContent().filter((c) => c.id !== id);
   saveAdminContent(list);
 }
@@ -246,6 +323,8 @@ export function resetAdminData(): void {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(KEY_CREATORS);
   localStorage.removeItem(KEY_CONTENT);
+  localStorage.removeItem(KEY_DELETED_CONTENT);
+  localStorage.removeItem(KEY_DELETED_CREATORS);
   bustCache();
 }
 
