@@ -195,18 +195,26 @@ export function getAdminCreators(): Creator[] {
     if (!raw) {
       baseList = INITIAL_GLOBAL_CREATORS;
     } else {
-      const parsed = JSON.parse(raw) as Creator[];
-      const existingIds = new Set(parsed.map((c) => c.username?.toLowerCase() || c.id?.toLowerCase()));
+      const parsedRaw = JSON.parse(raw);
+      const parsed = Array.isArray(parsedRaw) ? (parsedRaw.filter(Boolean) as Creator[]) : [];
+      const existingIds = new Set(
+        parsed
+          .map((c) => (c && (c.username || c.id) ? (c.username || c.id).toLowerCase() : ''))
+          .filter(Boolean)
+      );
       const merged = [...parsed];
       INITIAL_GLOBAL_CREATORS.forEach((c) => {
-        const uKey = c.username?.toLowerCase() || c.id?.toLowerCase();
-        if (!existingIds.has(uKey) && !deleted.has(c.id) && !deleted.has(c.username)) {
+        if (!c) return;
+        const uKey = c.username?.toLowerCase() || c.id?.toLowerCase() || '';
+        const cId = c.id || '';
+        const cUname = c.username || '';
+        if (uKey && !existingIds.has(uKey) && (!cId || !deleted.has(cId)) && (!cUname || !deleted.has(cUname))) {
           merged.push(c);
         }
       });
       baseList = merged;
     }
-    return baseList.filter((c) => !deleted.has(c.id) && !deleted.has(c.username));
+    return baseList.filter((c) => c && (!c.id || !deleted.has(c.id)) && (!c.username || !deleted.has(c.username)));
   } catch {
     return INITIAL_GLOBAL_CREATORS;
   }
@@ -241,20 +249,20 @@ export function deleteAdminCreator(id: string): void {
   if (typeof window === 'undefined') return;
   const deleted = getDeletedCreatorIds();
   deleted.add(id);
-  const target = getAdminCreators().find((c) => c.id === id || c.username === id);
+  const target = getAdminCreators().find((c) => c && (c.id === id || c.username === id));
   if (target) {
-    deleted.add(target.id);
+    if (target.id) deleted.add(target.id);
     if (target.username) deleted.add(target.username);
   }
   saveDeletedCreatorIds(deleted);
 
-  const list = getAdminCreators().filter((c) => c.id !== id && c.username !== id);
+  const list = getAdminCreators().filter((c) => c && c.id !== id && c.username !== id);
   saveAdminCreators(list);
 
   // Delete creator's content as well
   const content = getAdminContent();
   content.forEach((item) => {
-    if (item.creatorId === id || item.creatorUsername === id) {
+    if (item && (item.creatorId === id || item.creatorUsername === id)) {
       deleteAdminContent(item.id);
     }
   });
@@ -272,17 +280,18 @@ export function getAdminContent(): Content[] {
     if (!raw) {
       baseList = INITIAL_GLOBAL_CONTENT;
     } else {
-      const parsed = JSON.parse(raw) as Content[];
-      const existingIds = new Set(parsed.map((c) => c.id));
+      const parsedRaw = JSON.parse(raw);
+      const parsed = Array.isArray(parsedRaw) ? (parsedRaw.filter(Boolean) as Content[]) : [];
+      const existingIds = new Set(parsed.map((c) => c?.id).filter(Boolean));
       const merged = [...parsed];
       INITIAL_GLOBAL_CONTENT.forEach((c) => {
-        if (!existingIds.has(c.id) && !deleted.has(c.id)) {
+        if (c && c.id && !existingIds.has(c.id) && !deleted.has(c.id)) {
           merged.push(c);
         }
       });
       baseList = merged;
     }
-    return baseList.filter((c) => !deleted.has(c.id));
+    return baseList.filter((c) => c && c.id && !deleted.has(c.id));
   } catch {
     return INITIAL_GLOBAL_CONTENT;
   }

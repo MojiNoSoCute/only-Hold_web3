@@ -122,13 +122,15 @@ export default function MyNFTsPage() {
     loadNFTs().catch((e) => setError(String(e))).finally(() => setLoading(false));
   }, [isConnected, address]);
 
-  const filteredNfts = nfts.filter(
-    (item) =>
-      item.nftName.toLowerCase().includes(search.toLowerCase()) ||
-      item.creatorName.toLowerCase().includes(search.toLowerCase()) ||
-      item.creatorUsername.toLowerCase().includes(search.toLowerCase()) ||
-      item.nftSymbol.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredNfts = nfts.filter((item) => {
+    if (!item) return false;
+    const s = (search || '').toLowerCase();
+    const nftName = (item.nftName || '').toLowerCase();
+    const creatorName = (item.creatorName || '').toLowerCase();
+    const creatorUsername = (item.creatorUsername || '').toLowerCase();
+    const nftSymbol = (item.nftSymbol || '').toLowerCase();
+    return !s || nftName.includes(s) || creatorName.includes(s) || creatorUsername.includes(s) || nftSymbol.includes(s);
+  });
 
   if (!isConnected) {
     return (

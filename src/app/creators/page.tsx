@@ -12,16 +12,21 @@ export default function CreatorsPage() {
 
   const filtered = creators
     .filter((c) => {
-      const matchSearch =
-        c.name.toLowerCase().includes(search.toLowerCase()) ||
-        c.username.toLowerCase().includes(search.toLowerCase()) ||
-        c.bio.toLowerCase().includes(search.toLowerCase());
+      if (!c) return false;
+      const s = (search || '').toLowerCase();
+      const name = (c.name || '').toLowerCase();
+      const username = (c.username || '').toLowerCase();
+      const bio = (c.bio || '').toLowerCase();
+      const matchSearch = !s || name.includes(s) || username.includes(s) || bio.includes(s);
       const matchCategory = selectedCategory === 'all' || c.category === selectedCategory;
       return matchSearch && matchCategory;
     })
     .sort((a, b) => {
-      if (sortBy === 'subscribers') return b.totalSubscribers - a.totalSubscribers;
-      return new Date(b.joinedAt).getTime() - new Date(a.joinedAt).getTime();
+      if (!a || !b) return 0;
+      if (sortBy === 'subscribers') return (b.totalSubscribers || 0) - (a.totalSubscribers || 0);
+      const timeA = a.joinedAt ? new Date(a.joinedAt).getTime() : 0;
+      const timeB = b.joinedAt ? new Date(b.joinedAt).getTime() : 0;
+      return timeB - timeA;
     });
 
   return (

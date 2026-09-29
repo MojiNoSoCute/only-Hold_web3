@@ -117,7 +117,11 @@ export default function DashboardPage() {
 
       // Find current creator profile in chain/local data to fill edit form
       const existing = creators.find(
-        (c) => c.username.toLowerCase() === p.username.toLowerCase() || c.address.toLowerCase() === address.toLowerCase()
+        (c) =>
+          c &&
+          ((c.username && p.username && c.username.toLowerCase() === p.username.toLowerCase()) ||
+            (c.address && address && c.address.toLowerCase() === address.toLowerCase()) ||
+            (c.id && address && c.id.toLowerCase() === address.toLowerCase()))
       );
       if (existing) {
         setProfileForm({
@@ -188,9 +192,10 @@ export default function DashboardPage() {
     const targetUsername = profile?.username || profileForm.name || `user_${address.slice(2, 8)}`;
     const existingIndex = currentList.findIndex(
       (c) =>
-        (c.username && c.username.toLowerCase() === targetUsername.toLowerCase()) ||
-        (c.address && c.address.toLowerCase() === address.toLowerCase()) ||
-        c.id.toLowerCase() === address.toLowerCase()
+        c &&
+        ((c.username && targetUsername && c.username.toLowerCase() === targetUsername.toLowerCase()) ||
+          (c.address && address && c.address.toLowerCase() === address.toLowerCase()) ||
+          (c.id && address && c.id.toLowerCase() === address.toLowerCase()))
     );
 
     const existing = existingIndex >= 0 ? currentList[existingIndex] : null;

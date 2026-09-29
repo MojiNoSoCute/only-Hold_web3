@@ -252,9 +252,10 @@ export async function POST(req: Request) {
     } else if (action === 'update_creator' && data) {
       const idx = store.creators.findIndex(
         (c) =>
-          c.id.toLowerCase() === data.id.toLowerCase() ||
-          (c.username && data.username && c.username.toLowerCase() === data.username.toLowerCase()) ||
-          (c.address && data.address && c.address.toLowerCase() === data.address.toLowerCase())
+          c &&
+          ((c.id && data.id && c.id.toLowerCase() === data.id.toLowerCase()) ||
+            (c.username && data.username && c.username.toLowerCase() === data.username.toLowerCase()) ||
+            (c.address && data.address && c.address.toLowerCase() === data.address.toLowerCase()))
       );
       if (idx >= 0) {
         store.creators[idx] = { ...store.creators[idx], ...data };
@@ -263,7 +264,10 @@ export async function POST(req: Request) {
       }
     } else if (action === 'add_creator' && data) {
       const idx = store.creators.findIndex(
-        (c) => c.id.toLowerCase() === data.id.toLowerCase() || c.username?.toLowerCase() === data.username?.toLowerCase()
+        (c) =>
+          c &&
+          ((c.id && data.id && c.id.toLowerCase() === data.id.toLowerCase()) ||
+            (c.username && data.username && c.username.toLowerCase() === data.username.toLowerCase()))
       );
       if (idx >= 0) {
         store.creators[idx] = data;
@@ -272,7 +276,7 @@ export async function POST(req: Request) {
       }
       store.deletedCreatorIds = store.deletedCreatorIds.filter((cid) => cid !== data.id && cid !== data.username);
     } else if (action === 'delete_creator' && id) {
-      store.creators = store.creators.filter((c) => c.id !== id && c.username !== id);
+      store.creators = store.creators.filter((c) => c && c.id !== id && c.username !== id);
       if (!store.deletedCreatorIds.includes(id)) {
         store.deletedCreatorIds.push(id);
       }

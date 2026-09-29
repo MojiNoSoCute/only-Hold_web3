@@ -31,7 +31,13 @@ export default function SubscribeModal({ creatorId, creatorName, onClose }: Subs
   const [subContract, setSubContract] = useState('');
   const [monthlyPrice, setMonthlyPrice] = useState(0n);
 
-  const creator = creators.find((c) => c.id.toLowerCase() === creatorId.toLowerCase() || c.username.toLowerCase() === creatorId.toLowerCase()) || {
+  const creator = creators.find(
+    (c) =>
+      c &&
+      creatorId &&
+      ((c.id && c.id.toLowerCase() === creatorId.toLowerCase()) ||
+        (c.username && c.username.toLowerCase() === creatorId.toLowerCase()))
+  ) || {
     id: creatorId,
     username: creatorId,
     name: creatorName,

@@ -93,9 +93,9 @@ export default function CreatorPage({ params }: CreatorPageProps) {
         // Find saved custom profile (avatar, cover, name, bio) from admin store / chain data
         const localList = getAdminCreators();
         const custom = localList.find(
-          (c) => c.username?.toLowerCase() === uname.toLowerCase() || c.address?.toLowerCase() === creatorAddr.toLowerCase()
+          (c) => c && ((c.username && c.username.toLowerCase() === uname.toLowerCase()) || (c.address && c.address.toLowerCase() === creatorAddr.toLowerCase()))
         ) || creators.find(
-          (c) => c.username?.toLowerCase() === uname.toLowerCase() || c.address?.toLowerCase() === creatorAddr.toLowerCase()
+          (c) => c && ((c.username && c.username.toLowerCase() === uname.toLowerCase()) || (c.address && c.address.toLowerCase() === creatorAddr.toLowerCase()))
         );
 
         setCreator({
@@ -125,7 +125,10 @@ export default function CreatorPage({ params }: CreatorPageProps) {
   useEffect(() => {
     if (!creator) return;
     const match = creators.find(
-      (c) => c.username?.toLowerCase() === creator.username.toLowerCase() || c.address?.toLowerCase() === creator.address.toLowerCase()
+      (c) =>
+        c &&
+        ((c.username && creator.username && c.username.toLowerCase() === creator.username.toLowerCase()) ||
+          (c.address && creator.address && c.address.toLowerCase() === creator.address.toLowerCase()))
     );
     if (match) {
       setCreator((prev) => {
@@ -189,9 +192,10 @@ export default function CreatorPage({ params }: CreatorPageProps) {
 
   const creatorContent = content.filter(
     (c) =>
-      c.creatorUsername?.toLowerCase() === creator.username.toLowerCase() ||
-      c.creatorId?.toLowerCase() === creator.id.toLowerCase() ||
-      c.creatorId?.toLowerCase() === creator.address.toLowerCase()
+      c &&
+      ((c.creatorUsername && creator?.username && c.creatorUsername.toLowerCase() === creator.username.toLowerCase()) ||
+        (c.creatorId && creator?.id && c.creatorId.toLowerCase() === creator.id.toLowerCase()) ||
+        (c.creatorId && creator?.address && c.creatorId.toLowerCase() === creator.address.toLowerCase()))
   );
 
   return (

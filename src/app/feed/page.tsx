@@ -65,15 +65,17 @@ export default function FeedPage() {
   const accessibleIds = Object.entries(accessMap).filter(([, v]) => v.hasAccess).map(([id]) => id);
 
   const subscribedFeed = content.filter((c) => {
+    if (!c) return false;
     const creator = creators.find(
       (cr) =>
-        cr.username?.toLowerCase() === c.creatorUsername?.toLowerCase() ||
-        cr.id?.toLowerCase() === c.creatorId?.toLowerCase() ||
-        cr.address?.toLowerCase() === c.creatorId?.toLowerCase()
+        cr &&
+        ((cr.username && c.creatorUsername && cr.username.toLowerCase() === c.creatorUsername.toLowerCase()) ||
+          (cr.id && c.creatorId && cr.id.toLowerCase() === c.creatorId.toLowerCase()) ||
+          (cr.address && c.creatorId && cr.address.toLowerCase() === c.creatorId.toLowerCase()))
     );
     return (
       (creator && accessibleIds.includes(creator.id)) ||
-      (address && c.creatorId?.toLowerCase() === address.toLowerCase())
+      (address && c.creatorId && c.creatorId.toLowerCase() === address.toLowerCase())
     );
   });
 
@@ -150,15 +152,19 @@ export default function FeedPage() {
           ) : (
             <div className="grid sm:grid-cols-2 gap-5">
               {displayedPosts.map((c) => {
+                if (!c) return null;
                 const creator = creators.find(
                   (cr) =>
-                    cr.username?.toLowerCase() === c.creatorUsername?.toLowerCase() ||
-                    cr.id?.toLowerCase() === c.creatorId?.toLowerCase() ||
-                    cr.address?.toLowerCase() === c.creatorId?.toLowerCase()
+                    cr &&
+                    ((cr.username && c.creatorUsername && cr.username.toLowerCase() === c.creatorUsername.toLowerCase()) ||
+                      (cr.id && c.creatorId && cr.id.toLowerCase() === c.creatorId.toLowerCase()) ||
+                      (cr.address && c.creatorId && cr.address.toLowerCase() === c.creatorId.toLowerCase()))
                 );
                 const hasSub =
                   (creator && accessMap[creator.id]?.hasAccess) ||
-                  (address && (c.creatorId?.toLowerCase() === address.toLowerCase() || c.creatorUsername?.toLowerCase() === address.toLowerCase()));
+                  (address &&
+                    ((c.creatorId && c.creatorId.toLowerCase() === address.toLowerCase()) ||
+                      (c.creatorUsername && c.creatorUsername.toLowerCase() === address.toLowerCase())));
                 return <ContentCard key={c.id} content={c} isSubscribed={Boolean(hasSub)} />;
               })}
             </div>
