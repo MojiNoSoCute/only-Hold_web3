@@ -14,48 +14,61 @@ export function shortenAddress(address: string, chars = 4): string {
 /**
  * Formats a number with K/M suffixes
  */
-export function formatNumber(num: number): string {
-  if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(1)}M`;
-  if (num >= 1_000) return `${(num / 1_000).toFixed(1)}K`;
-  return num.toString();
+export function formatNumber(num: number | string | undefined | null): string {
+  if (num === undefined || num === null || num === '') return '0';
+  const n = typeof num === 'number' ? num : parseFloat(String(num));
+  if (isNaN(n)) return '0';
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return n.toString();
 }
 
 /**
  * Formats a USD value with commas
  */
-export function formatUSD(value: string | number): string {
+export function formatUSD(value: string | number | undefined | null): string {
+  if (value === undefined || value === null || value === '') return '$0';
   const num = typeof value === 'string' ? parseFloat(value.replace(/,/g, '')) : value;
+  if (isNaN(num)) return '$0';
   return `$${num.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 }
 
 /**
  * Formats ETH value with symbol
  */
-export function formatETH(value: string | number): string {
+export function formatETH(value: string | number | undefined | null): string {
+  if (value === undefined || value === null || value === '') return '0 ETH';
   return `${value} ETH`;
 }
 
 /**
  * Returns a relative time string in Thai (e.g., "2 วันที่แล้ว")
  */
-export function timeAgo(dateStr: string): string {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+export function timeAgo(dateStr?: string | null): string {
+  if (!dateStr) return 'เมื่อกี้';
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return 'เมื่อกี้';
+    const now = new Date();
+    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+    if (seconds < 0) return 'เมื่อกี้';
 
-  const intervals: [number, string][] = [
-    [31536000, 'ปี'],
-    [2592000, 'เดือน'],
-    [86400, 'วัน'],
-    [3600, 'ชั่วโมง'],
-    [60, 'นาที'],
-  ];
+    const intervals: [number, string][] = [
+      [31536000, 'ปี'],
+      [2592000, 'เดือน'],
+      [86400, 'วัน'],
+      [3600, 'ชั่วโมง'],
+      [60, 'นาที'],
+    ];
 
-  for (const [secs, label] of intervals) {
-    const count = Math.floor(seconds / secs);
-    if (count >= 1) return `${count} ${label}ที่แล้ว`;
+    for (const [secs, label] of intervals) {
+      const count = Math.floor(seconds / secs);
+      if (count >= 1) return `${count} ${label}ที่แล้ว`;
+    }
+    return 'เมื่อกี้';
+  } catch {
+    return 'เมื่อกี้';
   }
-  return 'เมื่อกี้';
 }
 
 /**

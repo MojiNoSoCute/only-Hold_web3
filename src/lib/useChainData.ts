@@ -167,7 +167,11 @@ export function useChainData(): ChainData {
   const [chainCreators, setChainCreators] = useState<Creator[]>(_cachedCreators ?? []);
   const [isLoading, setIsLoading] = useState(!_cachedCreators);
   const [error, setError] = useState<string | null>(null);
-  const [adminVersion, setAdminVersion] = useState(() => getAdminVersion());
+  const [adminVersion, setAdminVersion] = useState(0);
+
+  useEffect(() => {
+    setAdminVersion(getAdminVersion());
+  }, []);
 
   const load = useCallback(() => {
     if (_cachedCreators) { setChainCreators(_cachedCreators); setIsLoading(false); return; }
