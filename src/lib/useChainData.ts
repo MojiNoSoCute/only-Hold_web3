@@ -223,11 +223,6 @@ export function useChainData(): ChainData {
   const adminCreators = useMemo(() => getAdminCreators(), [adminVersion]);
   const adminContent  = useMemo(() => getAdminContent(),  [adminVersion]);
 
-  // Real content created by creators
-  const content = useMemo<Content[]>(() => {
-    return adminContent;
-  }, [adminContent]);
-
   const mergedCreators = useMemo<Creator[]>(() => {
     const adminMap = new Map<string, Creator>();
     adminCreators.forEach((c) => {
@@ -246,11 +241,12 @@ export function useChainData(): ChainData {
       const u = uName ? uName.toLowerCase() : '';
       const id = idStr ? idStr.toLowerCase() : '';
       const addr = addrStr ? addrStr.toLowerCase() : '';
-      return content.filter(
+      return adminContent.filter(
         (item) =>
-          (u && item.creatorUsername?.toLowerCase() === u) ||
-          (id && item.creatorId?.toLowerCase() === id) ||
-          (addr && item.creatorId?.toLowerCase() === addr)
+          item &&
+          ((u && item.creatorUsername?.toLowerCase() === u) ||
+            (id && item.creatorId?.toLowerCase() === id) ||
+            (addr && item.creatorId?.toLowerCase() === addr))
       ).length;
     };
 
@@ -287,7 +283,33 @@ export function useChainData(): ChainData {
       }));
 
     return [...enrichedChain, ...extraAdmin];
-  }, [chainCreators, adminCreators, content]);
+  }, [chainCreators, adminCreators, adminContent]);
+
+  // Real content created by creators, dynamically enriched with creator's latest live profile
+  const content = useMemo<Content[]>(() => {
+    const creatorMap = new Map<string, Creator>();
+    mergedCreators.forEach((c) => {
+      if (!c) return;
+      if (c.username) creatorMap.set(c.username.toLowerCase(), c);
+      if (c.address) creatorMap.set(c.address.toLowerCase(), c);
+      if (c.id) creatorMap.set(c.id.toLowerCase(), c);
+    });
+
+    return adminContent.map((item) => {
+      if (!item) return item;
+      const uKey = item.creatorUsername ? item.creatorUsername.toLowerCase() : '';
+      const idKey = item.creatorId ? item.creatorId.toLowerCase() : '';
+      const creator = (uKey ? creatorMap.get(uKey) : null) || (idKey ? creatorMap.get(idKey) : null);
+      if (creator) {
+        return {
+          ...item,
+          creatorName: creator.name || item.creatorName,
+          creatorAvatar: creator.avatar || item.creatorAvatar,
+        };
+      }
+      return item;
+    });
+  }, [adminContent, mergedCreators]);
 
   return { creators: mergedCreators, content, categories: CATEGORIES, isLoading, error, refetch };
 }

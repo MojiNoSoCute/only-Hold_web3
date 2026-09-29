@@ -240,8 +240,35 @@ export function addAdminCreator(creator: Creator): void {
 }
 
 export function updateAdminCreator(updated: Creator): void {
-  const list = getAdminCreators().map((c) => (c.id === updated.id ? updated : c));
+  const list = getAdminCreators().map((c) => (c && c.id === updated.id ? updated : c));
   saveAdminCreators(list);
+
+  // Also update creator avatar & name in saved posts
+  try {
+    const rawContent = localStorage.getItem(KEY_CONTENT);
+    if (rawContent) {
+      const parsedContent = JSON.parse(rawContent) as Content[];
+      if (Array.isArray(parsedContent)) {
+        const updatedContent = parsedContent.map((item) => {
+          if (!item) return item;
+          const isMatch =
+            (updated.username && item.creatorUsername?.toLowerCase() === updated.username.toLowerCase()) ||
+            (updated.id && item.creatorId?.toLowerCase() === updated.id.toLowerCase()) ||
+            (updated.address && item.creatorId?.toLowerCase() === updated.address.toLowerCase());
+          if (isMatch) {
+            return {
+              ...item,
+              creatorName: updated.name || item.creatorName,
+              creatorAvatar: updated.avatar || item.creatorAvatar,
+            };
+          }
+          return item;
+        });
+        localStorage.setItem(KEY_CONTENT, JSON.stringify(updatedContent));
+      }
+    }
+  } catch {}
+
   pushSync('update_creator', { data: updated });
 }
 
