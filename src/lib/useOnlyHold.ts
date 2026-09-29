@@ -366,16 +366,24 @@ export function useOnlyHold() {
           params.enableSub,
           params.monthlyPrice,
           ethers.ZeroAddress,
-        ] as const;
+        ];
 
         // simulate ก่อนส่งจริง เพื่อ decode revert reason
         try {
-          await factory.launchCreator.staticCall(...launchArgs);
+          await factory.launchCreator.staticCall(
+            launchArgs[0], launchArgs[1], launchArgs[2], launchArgs[3],
+            launchArgs[4], launchArgs[5], launchArgs[6], launchArgs[7],
+            launchArgs[8], launchArgs[9], launchArgs[10]
+          );
         } catch (simErr: any) {
-          throw simErr; // จะถูก catch ด้านนอกและ parseContractError
+          throw simErr;
         }
 
-        const tx = await factory.launchCreator(...launchArgs);
+        const tx = await factory.launchCreator(
+          launchArgs[0], launchArgs[1], launchArgs[2], launchArgs[3],
+          launchArgs[4], launchArgs[5], launchArgs[6], launchArgs[7],
+          launchArgs[8], launchArgs[9], launchArgs[10]
+        );
         const receipt = await tx.wait();
         // Parse event from receipt
         const iface = new ethers.Interface(FACTORY_ABI);
