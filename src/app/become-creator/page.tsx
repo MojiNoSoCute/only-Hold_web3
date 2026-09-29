@@ -213,6 +213,15 @@ export default function BecomeCreatorPage() {
                       <button onClick={switchToSepolia} className="ml-2 underline">สลับเลย</button>
                     </p>
                   )}
+                  {!isWrongNetwork && (
+                    <div className="mb-4 p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-300">
+                      <p className="font-medium mb-1">💧 ต้องการ Sepolia ETH สำหรับ gas fee?</p>
+                      <div className="flex gap-2 flex-wrap justify-center mt-1">
+                        <a href="https://cloud.google.com/application/web3/faucet/ethereum/sepolia" target="_blank" rel="noopener noreferrer" className="px-2 py-1 rounded bg-blue-500/20 hover:bg-blue-500/30 transition-colors">Google Faucet →</a>
+                        <a href="https://sepoliafaucet.com" target="_blank" rel="noopener noreferrer" className="px-2 py-1 rounded bg-blue-500/20 hover:bg-blue-500/30 transition-colors">Alchemy Faucet →</a>
+                      </div>
+                    </div>
+                  )}
                   <button onClick={() => setStep(2)} disabled={isWrongNetwork} className="px-8 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold hover:opacity-90 transition-all disabled:opacity-40">ถัดไป →</button>
                 </div>
               ) : (
