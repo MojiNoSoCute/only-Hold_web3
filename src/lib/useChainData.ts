@@ -182,10 +182,9 @@ export function useChainData(): ChainData {
   const adminContent  = useMemo(() => getAdminContent(),  [adminVersion]);
 
   const mergedCreators = useMemo<Creator[]>(() => {
-    if (chainCreators.length === 0) return adminCreators;
     const chainUsernames = new Set(chainCreators.map((c) => c.username));
-    const extraMock = adminCreators.filter((c) => !chainUsernames.has(c.username));
-    return [...chainCreators, ...extraMock];
+    const extraAdmin = adminCreators.filter((c) => !chainUsernames.has(c.username));
+    return [...chainCreators, ...extraAdmin];
   }, [chainCreators, adminCreators]);
 
   const content = useMemo<Content[]>(() => adminContent.map((c) => {

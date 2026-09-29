@@ -30,13 +30,13 @@ const KEY_CONTENT  = 'onlyhold_mock_content';
 // ─── Creators ───────────────────────────────────────────────────────────────
 
 export function getAdminCreators(): Creator[] {
-  if (typeof window === 'undefined') return MOCK_CREATORS;
+  if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(KEY_CREATORS);
-    if (!raw) return MOCK_CREATORS;
+    if (!raw) return [];
     return JSON.parse(raw) as Creator[];
   } catch {
-    return MOCK_CREATORS;
+    return [];
   }
 }
 
@@ -69,13 +69,13 @@ export function deleteAdminCreator(id: string): void {
 // ─── Content ────────────────────────────────────────────────────────────────
 
 export function getAdminContent(): Content[] {
-  if (typeof window === 'undefined') return MOCK_CONTENT;
+  if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(KEY_CONTENT);
-    if (!raw) return MOCK_CONTENT;
+    if (!raw) return [];
     return JSON.parse(raw) as Content[];
   } catch {
-    return MOCK_CONTENT;
+    return [];
   }
 }
 

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useWeb3 } from '@/lib/Web3Provider';
 import { useOnlyHold } from '@/lib/useOnlyHold';
-import { MOCK_CREATORS } from '@/lib/mockData';
+import { useChainData } from '@/lib/useChainData';
 import WalletModal from './WalletModal';
 
 interface SubscribeModalProps {
@@ -17,6 +17,7 @@ type Tab = 'nft' | 'stablecoin';
 export default function SubscribeModal({ creatorId, creatorName, onClose }: SubscribeModalProps) {
   const { isConnected, address, isWrongNetwork, switchToSepolia } = useWeb3();
   const { mintNFT, subscribeWithStablecoin, resolveUsername, isLoading } = useOnlyHold();
+  const { creators } = useChainData();
 
   const [activeTab, setActiveTab] = useState<Tab>('nft');
   const [months, setMonths] = useState(1);
@@ -30,8 +31,13 @@ export default function SubscribeModal({ creatorId, creatorName, onClose }: Subs
   const [subContract, setSubContract] = useState('');
   const [monthlyPrice, setMonthlyPrice] = useState(0n);
 
-  const creator = MOCK_CREATORS.find((c) => c.id === creatorId);
-  if (!creator) return null;
+  const creator = creators.find((c) => c.id.toLowerCase() === creatorId.toLowerCase() || c.username.toLowerCase() === creatorId.toLowerCase()) || {
+    id: creatorId,
+    username: creatorId,
+    name: creatorName,
+    nftPrice: '0.05',
+    stablecoinPrice: '10',
+  };
 
   const stablecoinTotal = parseFloat(creator.stablecoinPrice || '0') * months;
 

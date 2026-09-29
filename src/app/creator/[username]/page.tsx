@@ -1,7 +1,7 @@
 'use client';
 
 import { use, useState, useEffect } from 'react';
-import { MOCK_CONTENT } from '@/lib/mockData';
+import { useChainData } from '@/lib/useChainData';
 import { formatNumber, CATEGORY_COLORS } from '@/lib/utils';
 import ContentCard from '@/components/ContentCard';
 import SubscribeModal from '@/components/SubscribeModal';
@@ -26,6 +26,7 @@ export default function CreatorPage({ params }: CreatorPageProps) {
   const { username } = use(params);
   const { isConnected, address } = useWeb3();
   const { checkAccess } = useOnlyHold();
+  const { content } = useChainData();
 
   const [subscribeModalOpen, setSubscribeModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'posts' | 'about'>('posts');
@@ -155,7 +156,7 @@ export default function CreatorPage({ params }: CreatorPageProps) {
     );
   }
 
-  const creatorContent = MOCK_CONTENT.filter(
+  const creatorContent = content.filter(
     (c) => c.creatorUsername === creator.username || c.creatorId === creator.id
   );
 

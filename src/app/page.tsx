@@ -2,33 +2,34 @@
 
 import Link from 'next/link';
 import { useWeb3 } from '@/lib/Web3Provider';
-import { MOCK_CREATORS, MOCK_CONTENT, CATEGORIES } from '@/lib/mockData';
+import { useChainData } from '@/lib/useChainData';
 import CreatorCard from '@/components/CreatorCard';
 import ContentCard from '@/components/ContentCard';
 import { useState } from 'react';
-import { formatNumber } from '@/lib/utils';
 import WalletModal from '@/components/WalletModal';
-
-const STATS = [
-  { value: '12,400+', label: 'ครีเอเตอร์ที่ใช้งานอยู่' },
-  { value: '$4.2M', label: 'รายได้ครีเอเตอร์' },
-  { value: '89,000+', label: 'สมาชิก NFT' },
-  { value: '320,000+', label: 'แฟนคลับ' },
-];
 
 export default function HomePage() {
   const { isConnected } = useWeb3();
+  const { creators, content, categories, isLoading } = useChainData();
   const [walletModalOpen, setWalletModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('all');
 
-  const featuredCreators = MOCK_CREATORS.slice(0, 6);
+  const featuredCreators = creators.slice(0, 6);
   const filteredContent =
     selectedCategory === 'all'
-      ? MOCK_CONTENT
-      : MOCK_CONTENT.filter((c) => {
-          const creator = MOCK_CREATORS.find((cr) => cr.id === c.creatorId);
+      ? content
+      : content.filter((c) => {
+          const creator = creators.find((cr) => cr.id === c.creatorId || cr.username === c.creatorUsername);
           return creator?.category === selectedCategory;
         });
+
+  const totalSubscribers = creators.reduce((acc, c) => acc + (c.totalSubscribers || 0), 0);
+  const STATS = [
+    { value: `${creators.length}`, label: 'ครีเอเตอร์ที่ลงทะเบียน' },
+    { value: `${totalSubscribers}`, label: 'สมาชิกปัจจุบัน' },
+    { value: 'Sepolia', label: 'Blockchain Network' },
+    { value: '95%', label: 'สัดส่วนรายได้ครีเอเตอร์' },
+  ];
 
   return (
     <>
@@ -164,11 +165,27 @@ export default function HomePage() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {featuredCreators.map((creator) => (
-              <CreatorCard key={creator.id} creator={creator} />
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="text-center py-12">
+              <div className="text-3xl animate-pulse mb-2">⛓️</div>
+              <p className="text-white/40 text-sm">กำลังโหลดข้อมูลจาก Sepolia Blockchain...</p>
+            </div>
+          ) : featuredCreators.length === 0 ? (
+            <div className="glass-card rounded-2xl p-8 text-center max-w-lg mx-auto border border-white/10">
+              <div className="text-4xl mb-3">🚀</div>
+              <h3 className="text-white font-bold text-lg mb-1">ยังไม่มีครีเอเตอร์บน Sepolia Blockchain</h3>
+              <p className="text-white/50 text-xs mb-4">มาร่วมเปิดตัวโปรไฟล์ NFT Membership หรือ Stablecoin Subscription เป็นคนแรก!</p>
+              <Link href="/become-creator" className="inline-block px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold text-xs hover:opacity-90 transition-all shadow-lg">
+                เปิดตัวเป็นครีเอเตอร์ →
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {featuredCreators.map((creator) => (
+                <CreatorCard key={creator.id} creator={creator} />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -187,7 +204,7 @@ export default function HomePage() {
 
           {/* Category Filter */}
           <div className="flex gap-2 overflow-x-auto pb-2 mb-6 scrollbar-hide">
-            {CATEGORIES.map((cat) => (
+            {categories.map((cat) => (
               <button
                 key={cat.value}
                 onClick={() => setSelectedCategory(cat.value)}
@@ -203,11 +220,22 @@ export default function HomePage() {
             ))}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {filteredContent.map((content) => (
-              <ContentCard key={content.id} content={content} isSubscribed={false} />
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="text-center py-12">
+              <p className="text-white/40 text-sm">กำลังโหลดคอนเทนต์...</p>
+            </div>
+          ) : filteredContent.length === 0 ? (
+            <div className="text-center py-12 bg-white/3 border border-white/5 rounded-2xl">
+              <div className="text-4xl mb-2">📝</div>
+              <p className="text-white/50 text-sm">ยังไม่มีคอนเทนต์จากครีเอเตอร์บน Blockchain</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {filteredContent.map((c) => (
+                <ContentCard key={c.id} content={c} isSubscribed={false} />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
