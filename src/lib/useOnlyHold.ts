@@ -49,12 +49,12 @@ const SUB_ABI = [
 const FACTORY_ABI = [
   'function checkAccess(address creatorAddress, address fan) view returns (bool hasAccess, string via)',
   'function resolveUsername(string username) view returns (address creator, address nft, address sub)',
-  'function launchCreator(string username, string metadataURI, bool enableNFT, string nftName, string nftSymbol, uint256 nftMintPrice, uint256 nftMaxSupply, string nftBaseURI, bool enableSub, uint256 monthlyPrice, address customStablecoin) returns (address nftContract, address subContract)',
+  'function launchCreator(string username, string metadataURI, (bool enable, string name, string symbol, uint256 mintPrice, uint256 maxSupply, string baseURI) nft, (bool enable, uint256 monthlyPrice, address customStablecoin) sub) returns (address nftContract, address subContract)',
   'function creatorProfiles(address) view returns (address creatorAddress, address nftContract, address subscriptionContract, string username, string metadataURI, uint256 registeredAt, bool isActive)',
   'function isRegistered(address) view returns (bool)',
   // custom errors — needed for ethers to decode revert reasons
   'error AlreadyRegistered()',
-  'error UsernameTaken(string username)',
+  'error UsernameTaken()',
   'error Blacklisted()',
   'error MustEnableAtLeastOne()',
   'error InvalidUsername()',
@@ -354,26 +354,30 @@ export function useOnlyHold() {
         if (!factoryPromise) return { success: false, error: 'No provider' };
         const factory = await factoryPromise;
 
-        const launchArgs = [
-          params.username,
-          params.metadataURI,
-          params.enableNFT,
-          params.nftName,
-          params.nftSymbol,
-          ethers.parseEther(params.nftMintPrice),
-          params.nftMaxSupply,
-          params.nftBaseURI,
-          params.enableSub,
-          params.monthlyPrice,
-          ethers.ZeroAddress,
-        ];
+        const nftParams = {
+          enable: params.enableNFT,
+          name: params.nftName,
+          symbol: params.nftSymbol,
+          mintPrice: ethers.parseEther(params.nftMintPrice),
+          maxSupply: params.nftMaxSupply,
+          baseURI: params.nftBaseURI,
+        };
+
+        const subParams = {
+          enable: params.enableSub,
+          monthlyPrice: params.monthlyPrice,
+          customStablecoin: ethers.ZeroAddress,
+        };
 
         // simulate ด้วย provider (read-only) เพื่อ decode revert reason ก่อนส่ง tx จริง
         const readFactory = getReadContract(FACTORY_ADDRESS, FACTORY_ABI);
         if (readFactory) {
           try {
             await readFactory.launchCreator.staticCall(
-              ...launchArgs,
+              params.username,
+              params.metadataURI,
+              nftParams,
+              subParams,
               { from: address }
             );
           } catch (simErr: any) {
@@ -382,9 +386,10 @@ export function useOnlyHold() {
         }
 
         const tx = await factory.launchCreator(
-          launchArgs[0], launchArgs[1], launchArgs[2], launchArgs[3],
-          launchArgs[4], launchArgs[5], launchArgs[6], launchArgs[7],
-          launchArgs[8], launchArgs[9], launchArgs[10]
+          params.username,
+          params.metadataURI,
+          nftParams,
+          subParams
         );
         const receipt = await tx.wait();
         // Parse event from receipt
@@ -407,7 +412,7 @@ export function useOnlyHold() {
         setIsLoading(false);
       }
     },
-    [isConnected, getContract]
+    [address, isConnected, getContract, getReadContract]
   );
 
   return {

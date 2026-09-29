@@ -40,7 +40,7 @@ const SECTIONS = [
         <div className="space-y-3">
           {[
             {
-              sig: 'launchCreator(string username, string metadataURI, bool enableNFT, string nftName, string nftSymbol, uint256 nftMintPrice, uint256 nftMaxSupply, string nftBaseURI, bool enableSub, uint256 monthlyPrice, address customStablecoin) → (address nftContract, address subContract)',
+              sig: 'launchCreator(string username, string metadataURI, NFTParams nft, SubParams sub) → (address nftContract, address subContract)',
               desc: 'Registers a new creator and deploys their contracts. Emits CreatorLaunched.',
             },
             {

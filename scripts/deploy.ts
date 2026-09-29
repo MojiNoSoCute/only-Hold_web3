@@ -89,15 +89,19 @@ async function main() {
     const tx = await factory.launchCreator(
       "demo_creator",               // username
       "ipfs://QmTest",              // metadataURI
-      true,                         // enableNFT
-      "Demo Creator NFT",           // nftName
-      "DEMO",                       // nftSymbol
-      ethers.parseEther("0.05"),    // nftMintPrice (0.05 ETH)
-      100,                          // nftMaxSupply
-      "ipfs://QmDemoBase/",         // nftBaseURI
-      true,                         // enableSub
-      10_000_000n,                  // monthlyPrice (10 USDC, 6 decimals)
-      ethers.ZeroAddress            // use default stablecoin
+      {
+        enable: true,
+        name: "Demo Creator NFT",
+        symbol: "DEMO",
+        mintPrice: ethers.parseEther("0.05"),
+        maxSupply: 100,
+        baseURI: "ipfs://QmDemoBase/",
+      },
+      {
+        enable: true,
+        monthlyPrice: 10_000_000n,  // 10 USDC (6 decimals)
+        customStablecoin: ethers.ZeroAddress,
+      }
     );
     const receipt = await tx.wait();
     const event = receipt?.logs.find(

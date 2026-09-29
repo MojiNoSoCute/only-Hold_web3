@@ -1,5 +1,6 @@
 import { expect } from "chai";
-import { ethers } from "hardhat";
+import hre from "hardhat";
+const { ethers } = hre;
 import { OnlyHoldNFT, OnlyHoldSubscription, OnlyHoldFactory, MockUSDC } from "../typechain-types";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 
@@ -41,15 +42,19 @@ describe("OnlyHold Smart Contracts", function () {
     const tx = await factory.connect(creator).launchCreator(
       "test_creator",
       "ipfs://QmTest",
-      true,   // enableNFT
-      "Test Creator NFT",
-      "TEST",
-      MINT_PRICE,
-      0, // unlimited
-      "ipfs://QmBase/",
-      true,   // enableSub
-      MONTHLY_PRICE,
-      ethers.ZeroAddress // use default stablecoin
+      {
+        enable: true,
+        name: "Test Creator NFT",
+        symbol: "TEST",
+        mintPrice: MINT_PRICE,
+        maxSupply: 0,
+        baseURI: "ipfs://QmBase/",
+      },
+      {
+        enable: true,
+        monthlyPrice: MONTHLY_PRICE,
+        customStablecoin: ethers.ZeroAddress,
+      }
     );
     const receipt = await tx.wait();
 
@@ -207,9 +212,8 @@ describe("OnlyHold Smart Contracts", function () {
         factory.connect(fan1).launchCreator(
           "test_creator", // already taken
           "ipfs://QmFan",
-          true, "Fan NFT", "FAN",
-          MINT_PRICE, 0, "ipfs://QmFanBase/",
-          false, 0n, ethers.ZeroAddress
+          { enable: true, name: "Fan NFT", symbol: "FAN", mintPrice: MINT_PRICE, maxSupply: 0, baseURI: "ipfs://QmFanBase/" },
+          { enable: false, monthlyPrice: 0n, customStablecoin: ethers.ZeroAddress }
         )
       ).to.be.revertedWithCustomError(factory, "UsernameTaken");
     });
@@ -219,9 +223,8 @@ describe("OnlyHold Smart Contracts", function () {
         factory.connect(creator).launchCreator(
           "another_name",
           "ipfs://QmTest2",
-          true, "Test2 NFT", "TST2",
-          MINT_PRICE, 0, "",
-          false, 0n, ethers.ZeroAddress
+          { enable: true, name: "Test2 NFT", symbol: "TST2", mintPrice: MINT_PRICE, maxSupply: 0, baseURI: "" },
+          { enable: false, monthlyPrice: 0n, customStablecoin: ethers.ZeroAddress }
         )
       ).to.be.revertedWithCustomError(factory, "AlreadyRegistered");
     });

@@ -32,6 +32,21 @@ contract OnlyHoldFactory is Ownable {
         bool isActive;
     }
 
+    struct NFTParams {
+        bool enable;
+        string name;
+        string symbol;
+        uint256 mintPrice;
+        uint256 maxSupply;
+        string baseURI;
+    }
+
+    struct SubParams {
+        bool enable;
+        uint256 monthlyPrice;
+        address customStablecoin;
+    }
+
     // ─── State Variables ──────────────────────────────────────────────────────
 
     /// @notice OnlyHold treasury address (receives 5% platform fees)
@@ -74,7 +89,7 @@ contract OnlyHoldFactory is Ownable {
     // ─── Errors ───────────────────────────────────────────────────────────────
 
     error AlreadyRegistered();
-    error UsernameTaken(string username);
+    error UsernameTaken();
     error Blacklisted();
     error MustEnableAtLeastOne();
     error InvalidUsername();
@@ -102,70 +117,76 @@ contract OnlyHoldFactory is Ownable {
     /**
      * @notice Register as a creator and optionally deploy NFT & Subscription contracts.
      *
-     * @param username          Unique creator username (lowercase, alphanumeric + underscore)
-     * @param metadataURI       IPFS URI with creator profile JSON
-     * @param enableNFT         Whether to deploy an NFT membership contract
-     * @param nftName           ERC-721 name   (e.g. "Aria Membership")
-     * @param nftSymbol         ERC-721 symbol (e.g. "ARIA")
-     * @param nftMintPrice      Mint price in wei
-     * @param nftMaxSupply      Max NFT supply (0 = unlimited)
-     * @param nftBaseURI        IPFS base URI for NFT metadata
-     * @param enableSub         Whether to deploy a stablecoin subscription contract
-     * @param monthlyPrice      Monthly price in stablecoin base units (e.g. 10_000_000 for 10 USDC)
-     * @param customStablecoin  Custom stablecoin address (address(0) to use platform default)
+     * @param username     Unique creator username (lowercase, alphanumeric + underscore)
+     * @param metadataURI  IPFS URI with creator profile JSON
+     * @param nft          NFT deployment parameters (set enable=false to skip)
+     * @param sub          Subscription deployment parameters (set enable=false to skip)
      */
     function launchCreator(
         string calldata username,
         string calldata metadataURI,
-        // NFT params
-        bool enableNFT,
-        string calldata nftName,
-        string calldata nftSymbol,
-        uint256 nftMintPrice,
-        uint256 nftMaxSupply,
-        string calldata nftBaseURI,
-        // Subscription params
-        bool enableSub,
-        uint256 monthlyPrice,
-        address customStablecoin
+        NFTParams calldata nft,
+        SubParams calldata sub
     ) external returns (address nftContract, address subContract) {
+        _validateLaunch(
+            bytes(username).length,
+            usernameToAddress[username] != address(0),
+            nft.enable,
+            sub.enable
+        );
+
+        nftContract = _deployNFT(nft);
+        subContract = _deploySub(sub);
+
+        _registerCreator(username, metadataURI, nftContract, subContract);
+    }
+
+    function _validateLaunch(
+        uint256 usernameLen,
+        bool usernameTaken,
+        bool enableNFT,
+        bool enableSub
+    ) internal view {
         if (isRegistered[msg.sender]) revert AlreadyRegistered();
         if (blacklisted[msg.sender]) revert Blacklisted();
         if (!enableNFT && !enableSub) revert MustEnableAtLeastOne();
-        if (bytes(username).length == 0 || bytes(username).length > 30) revert InvalidUsername();
-        if (usernameToAddress[username] != address(0)) revert UsernameTaken(username);
+        if (usernameLen == 0 || usernameLen > 30) revert InvalidUsername();
+        if (usernameTaken) revert UsernameTaken();
+    }
 
-        // ── Deploy NFT Contract ───────────────────────────────────────
-        if (enableNFT) {
-            OnlyHoldNFT nft = new OnlyHoldNFT(
-                msg.sender,
-                treasury,
-                nftName,
-                nftSymbol,
-                nftMintPrice,
-                nftMaxSupply,
-                nftBaseURI
-            );
-            nftContract = address(nft);
-        }
+    function _deployNFT(NFTParams calldata nft) internal returns (address) {
+        if (!nft.enable) return address(0);
+        return address(new OnlyHoldNFT(
+            msg.sender,
+            treasury,
+            nft.name,
+            nft.symbol,
+            nft.mintPrice,
+            nft.maxSupply,
+            nft.baseURI
+        ));
+    }
 
-        // ── Deploy Subscription Contract ──────────────────────────────
-        if (enableSub) {
-            address stablecoin = customStablecoin != address(0)
-                ? customStablecoin
-                : defaultStablecoin;
+    function _deploySub(SubParams calldata sub) internal returns (address) {
+        if (!sub.enable) return address(0);
+        address stablecoin = sub.customStablecoin != address(0)
+            ? sub.customStablecoin
+            : defaultStablecoin;
+        return address(new OnlyHoldSubscription(
+            msg.sender,
+            treasury,
+            stablecoin,
+            defaultStablecoinDecimals,
+            sub.monthlyPrice
+        ));
+    }
 
-            OnlyHoldSubscription sub = new OnlyHoldSubscription(
-                msg.sender,
-                treasury,
-                stablecoin,
-                defaultStablecoinDecimals,
-                monthlyPrice
-            );
-            subContract = address(sub);
-        }
-
-        // ── Register Creator ──────────────────────────────────────────
+    function _registerCreator(
+        string calldata username,
+        string calldata metadataURI,
+        address nftContract,
+        address subContract
+    ) internal {
         creatorProfiles[msg.sender] = CreatorProfile({
             creatorAddress: msg.sender,
             nftContract: nftContract,

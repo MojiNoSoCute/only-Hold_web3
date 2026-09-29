@@ -1298,8 +1298,8 @@
       ]
     },
     "C:\\src\\only\\contracts\\OnlyHoldFactory.sol": {
-      "lastModificationDate": 1790409231105,
-      "contentHash": "49290064c3e36c641f57a8d85309358b",
+      "lastModificationDate": 1790711308380,
+      "contentHash": "eb89846a394a39b9728f71da206f23f1",
       "sourceName": "contracts/OnlyHoldFactory.sol",
       "solcConfig": {
         "version": "0.8.28",

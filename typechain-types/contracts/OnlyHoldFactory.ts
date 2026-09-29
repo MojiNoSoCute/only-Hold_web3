@@ -23,6 +23,45 @@ import type {
   TypedContractMethod,
 } from "../common";
 
+export declare namespace OnlyHoldFactory {
+  export type NFTParamsStruct = {
+    enable: boolean;
+    name: string;
+    symbol: string;
+    mintPrice: BigNumberish;
+    maxSupply: BigNumberish;
+    baseURI: string;
+  };
+
+  export type NFTParamsStructOutput = [
+    enable: boolean,
+    name: string,
+    symbol: string,
+    mintPrice: bigint,
+    maxSupply: bigint,
+    baseURI: string
+  ] & {
+    enable: boolean;
+    name: string;
+    symbol: string;
+    mintPrice: bigint;
+    maxSupply: bigint;
+    baseURI: string;
+  };
+
+  export type SubParamsStruct = {
+    enable: boolean;
+    monthlyPrice: BigNumberish;
+    customStablecoin: AddressLike;
+  };
+
+  export type SubParamsStructOutput = [
+    enable: boolean,
+    monthlyPrice: bigint,
+    customStablecoin: string
+  ] & { enable: boolean; monthlyPrice: bigint; customStablecoin: string };
+}
+
 export interface OnlyHoldFactoryInterface extends Interface {
   getFunction(
     nameOrSignature:
@@ -106,15 +145,8 @@ export interface OnlyHoldFactoryInterface extends Interface {
     values: [
       string,
       string,
-      boolean,
-      string,
-      string,
-      BigNumberish,
-      BigNumberish,
-      string,
-      boolean,
-      BigNumberish,
-      AddressLike
+      OnlyHoldFactory.NFTParamsStruct,
+      OnlyHoldFactory.SubParamsStruct
     ]
   ): string;
   encodeFunctionData(functionFragment: "owner", values?: undefined): string;
@@ -387,15 +419,8 @@ export interface OnlyHoldFactory extends BaseContract {
     [
       username: string,
       metadataURI: string,
-      enableNFT: boolean,
-      nftName: string,
-      nftSymbol: string,
-      nftMintPrice: BigNumberish,
-      nftMaxSupply: BigNumberish,
-      nftBaseURI: string,
-      enableSub: boolean,
-      monthlyPrice: BigNumberish,
-      customStablecoin: AddressLike
+      nft: OnlyHoldFactory.NFTParamsStruct,
+      sub: OnlyHoldFactory.SubParamsStruct
     ],
     [[string, string] & { nftContract: string; subContract: string }],
     "nonpayable"
@@ -498,15 +523,8 @@ export interface OnlyHoldFactory extends BaseContract {
     [
       username: string,
       metadataURI: string,
-      enableNFT: boolean,
-      nftName: string,
-      nftSymbol: string,
-      nftMintPrice: BigNumberish,
-      nftMaxSupply: BigNumberish,
-      nftBaseURI: string,
-      enableSub: boolean,
-      monthlyPrice: BigNumberish,
-      customStablecoin: AddressLike
+      nft: OnlyHoldFactory.NFTParamsStruct,
+      sub: OnlyHoldFactory.SubParamsStruct
     ],
     [[string, string] & { nftContract: string; subContract: string }],
     "nonpayable"
