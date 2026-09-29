@@ -55,18 +55,17 @@ export default function BecomeCreatorPage() {
 
     setError('');
 
-    // ── ตรวจสอบ ETH balance + isRegistered ────────────────────────────────
+    // ── ตรวจสอบ ETH balance ────────────────────────────────────────────────
     try {
       const { ethers } = require('ethers');
       const provider = new ethers.BrowserProvider((window as any).ethereum);
-
-      // เช็ค ETH balance
       const bal = await provider.getBalance(address);
-      if (bal < ethers.parseEther('0.001')) {
-        setError('ETH ไม่เพียงพอสำหรับค่า Gas — ไปรับ Sepolia ETH ฟรีที่ sepoliafaucet.com ก่อน');
+      const balEth = parseFloat(ethers.formatEther(bal));
+      if (balEth < 0.001) {
+        setError(`ETH ไม่เพียงพอ (มี ${balEth.toFixed(4)} ETH) — ต้องการอย่างน้อย 0.001 ETH สำหรับ gas`);
         return;
       }
-    } catch (e: any) {
+    } catch {
       // ถ้าเช็ค balance ไม่ได้ ให้ผ่านไปก่อน
     }
 
