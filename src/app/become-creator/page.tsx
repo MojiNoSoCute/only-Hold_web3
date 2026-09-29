@@ -26,7 +26,7 @@ const CATEGORIES = [
 
 export default function BecomeCreatorPage() {
   const { isConnected, address, isWrongNetwork, switchToSepolia } = useWeb3();
-  const { registerCreator, isLoading } = useOnlyHold();
+  const { registerCreator, isLoading, FACTORY_ADDRESS } = useOnlyHold();
 
   const [walletModalOpen, setWalletModalOpen] = useState(false);
   const [step, setStep] = useState(isConnected ? 2 : 1);
@@ -56,21 +56,23 @@ export default function BecomeCreatorPage() {
     setError('');
 
     // ── ตรวจสอบก่อนว่า address นี้ register ไปแล้วหรือยัง ──────────────
-    try {
-      const { ethers } = require('ethers');
-      const provider = new ethers.BrowserProvider((window as any).ethereum);
-      const factory = new ethers.Contract(
-        process.env.NEXT_PUBLIC_FACTORY_ADDRESS ?? '',
-        ['function isRegistered(address) view returns (bool)'],
-        provider
-      );
-      const alreadyRegistered = await factory.isRegistered(address);
-      if (alreadyRegistered) {
-        setError('กระเป๋านี้ได้ลงทะเบียนเป็นครีเอเตอร์ไปแล้ว ไม่สามารถสมัครซ้ำได้ ไปที่ Dashboard เพื่อจัดการโปรไฟล์ของคุณ');
-        return;
+    if (FACTORY_ADDRESS) {
+      try {
+        const { ethers } = require('ethers');
+        const provider = new ethers.BrowserProvider((window as any).ethereum);
+        const factory = new ethers.Contract(
+          FACTORY_ADDRESS,
+          ['function isRegistered(address) view returns (bool)'],
+          provider
+        );
+        const alreadyRegistered: boolean = await factory.isRegistered(address);
+        if (alreadyRegistered) {
+          setError('กระเป๋านี้ได้ลงทะเบียนเป็นครีเอเตอร์ไปแล้ว ไปที่ Dashboard เพื่อจัดการโปรไฟล์ของคุณ');
+          return;
+        }
+      } catch {
+        // silent — ให้ contract revert เองถ้าจำเป็น
       }
-    } catch (e) {
-      // ถ้าเช็คไม่ได้ ให้ผ่าน (contract จะ revert เองถ้าซ้ำ)
     }
 
     // monthlyPrice: stablecoinPrice ดอลลาร์ → base units (6 decimals = USDC)
