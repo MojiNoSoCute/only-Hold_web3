@@ -7,7 +7,7 @@ import Link from 'next/link';
 import SubscribeModal from './SubscribeModal';
 import { useWeb3 } from '@/lib/Web3Provider';
 import { useOnlyHold } from '@/lib/useOnlyHold';
-import { getAdminCreators } from '@/lib/adminData';
+import { getAdminCreators, pushSync } from '@/lib/adminData';
 
 interface PostDetailModalProps {
   content: Content;
@@ -148,6 +148,7 @@ export default function PostDetailModal({ content, isSubscribed = false, onClose
 
     try {
       localStorage.setItem(storageKey, JSON.stringify(updated));
+      pushSync('add_comment', { postId: content.id, comment: item });
     } catch {}
   };
 

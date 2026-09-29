@@ -6,7 +6,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { getAdminCreators, getAdminContent, getAdminVersion } from './adminData';
+import { getAdminCreators, getAdminContent, getAdminVersion, pullSync } from './adminData';
 import { CATEGORIES } from './mockData';
 import type { Creator, Content } from './types';
 
@@ -186,6 +186,17 @@ export function useChainData(): ChainData {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    pullSync();
+    const interval = setInterval(() => pullSync(), 10000);
+    const focusHandler = () => pullSync();
+    window.addEventListener('focus', focusHandler);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', focusHandler);
+    };
+  }, []);
 
   useEffect(() => {
     const handler = () => setAdminVersion(getAdminVersion());

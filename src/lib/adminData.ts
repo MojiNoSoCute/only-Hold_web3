@@ -228,11 +228,13 @@ export function addAdminCreator(creator: Creator): void {
   const list = getAdminCreators();
   list.push(creator);
   saveAdminCreators(list);
+  pushSync('add_creator', { data: creator });
 }
 
 export function updateAdminCreator(updated: Creator): void {
   const list = getAdminCreators().map((c) => (c.id === updated.id ? updated : c));
   saveAdminCreators(list);
+  pushSync('update_creator', { data: updated });
 }
 
 export function deleteAdminCreator(id: string): void {
@@ -256,6 +258,7 @@ export function deleteAdminCreator(id: string): void {
       deleteAdminContent(item.id);
     }
   });
+  pushSync('delete_creator', { id });
 }
 
 // ─── Content ────────────────────────────────────────────────────────────────
@@ -300,11 +303,13 @@ export function addAdminContent(item: Content): void {
   const list = getAdminContent();
   list.unshift(item);
   saveAdminContent(list);
+  pushSync('add_post', { data: item });
 }
 
 export function updateAdminContent(updated: Content): void {
   const list = getAdminContent().map((c) => (c.id === updated.id ? updated : c));
   saveAdminContent(list);
+  pushSync('add_post', { data: updated });
 }
 
 export function deleteAdminContent(id: string): void {
@@ -315,6 +320,7 @@ export function deleteAdminContent(id: string): void {
 
   const list = getAdminContent().filter((c) => c.id !== id);
   saveAdminContent(list);
+  pushSync('delete_post', { id });
 }
 
 // ─── Reset to defaults ───────────────────────────────────────────────────────
@@ -326,6 +332,7 @@ export function resetAdminData(): void {
   localStorage.removeItem(KEY_DELETED_CONTENT);
   localStorage.removeItem(KEY_DELETED_CREATORS);
   bustCache();
+  pushSync('reset');
 }
 
 // ─── Cache buster ────────────────────────────────────────────────────────────
@@ -341,4 +348,64 @@ export function bustCache(): void {
 export function getAdminVersion(): number {
   if (typeof window === 'undefined') return 0;
   return Number(localStorage.getItem(CACHE_KEY) ?? 0);
+}
+
+// ─── Global Server Sync API ──────────────────────────────────────────────────
+
+export async function pushSync(action: string, payloadData?: any): Promise<void> {
+  if (typeof window === 'undefined') return;
+  try {
+    const res = await fetch('/api/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, ...payloadData }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      applySyncedStore(data);
+    }
+  } catch {}
+}
+
+export async function pullSync(): Promise<void> {
+  if (typeof window === 'undefined') return;
+  try {
+    const res = await fetch('/api/sync');
+    if (res.ok) {
+      const data = await res.json();
+      applySyncedStore(data);
+    }
+  } catch {}
+}
+
+export function applySyncedStore(store: any): void {
+  if (typeof window === 'undefined' || !store) return;
+  try {
+    let updated = false;
+    if (Array.isArray(store.creators)) {
+      localStorage.setItem(KEY_CREATORS, JSON.stringify(store.creators));
+      updated = true;
+    }
+    if (Array.isArray(store.content)) {
+      localStorage.setItem(KEY_CONTENT, JSON.stringify(store.content));
+      updated = true;
+    }
+    if (Array.isArray(store.deletedContentIds)) {
+      localStorage.setItem(KEY_DELETED_CONTENT, JSON.stringify(store.deletedContentIds));
+      updated = true;
+    }
+    if (Array.isArray(store.deletedCreatorIds)) {
+      localStorage.setItem(KEY_DELETED_CREATORS, JSON.stringify(store.deletedCreatorIds));
+      updated = true;
+    }
+    if (store.comments && typeof store.comments === 'object') {
+      Object.entries(store.comments).forEach(([postId, comments]) => {
+        localStorage.setItem(`onlyhold_comments_${postId}`, JSON.stringify(comments));
+      });
+      updated = true;
+    }
+    if (updated) {
+      bustCache();
+    }
+  } catch {}
 }
