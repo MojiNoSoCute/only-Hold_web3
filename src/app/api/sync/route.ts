@@ -89,72 +89,9 @@ const DEFAULT_CREATORS: Creator[] = [
   },
 ];
 
-const DEFAULT_CONTENT: Content[] = [
-  {
-    id: 'post_yumi_1',
-    creatorId: 'yumi',
-    creatorName: 'Yumi',
-    creatorUsername: 'yumi',
-    creatorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop',
-    title: 'เล่นเกม',
-    description: 'เล่นเกม คุยกับทุกคนยามดึกนะคะ ✨',
-    thumbnail: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1200&auto=format&fit=crop',
-    type: 'image',
-    isExclusive: false,
-    likes: 0,
-    comments: 0,
-    createdAt: new Date(Date.now() - 3600000 * 21).toISOString(),
-    tags: ['gaming', 'update'],
-  },
-  {
-    id: 'post_hana_1',
-    creatorId: 'hana',
-    creatorName: 'Hana',
-    creatorUsername: 'hana',
-    creatorAvatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=500&auto=format&fit=crop',
-    title: "Hello I'm new here",
-    description: 'Pls support me ✨ ยินดีต้อนรับทุกคนเข้าสู่โปรไฟล์ของ Hana นะคะ!',
-    thumbnail: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=1200&auto=format&fit=crop',
-    type: 'image',
-    isExclusive: false,
-    likes: 0,
-    comments: 0,
-    createdAt: new Date(Date.now() - 3600000 * 21).toISOString(),
-    tags: ['lifestyle', 'new'],
-  },
-  {
-    id: 'post_moji_1',
-    creatorId: 'moji',
-    creatorName: 'Moji',
-    creatorUsername: 'moji',
-    creatorAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop',
-    title: 'Moji Artwork Showcase',
-    description: 'สวัสดีครับ Moji ยินดีต้อนรับทุกท่านครับ!',
-    thumbnail: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1200&auto=format&fit=crop',
-    type: 'image',
-    isExclusive: false,
-    likes: 0,
-    comments: 0,
-    createdAt: new Date(Date.now() - 3600000 * 21).toISOString(),
-    tags: ['art'],
-  },
-  {
-    id: 'post_asdf_1',
-    creatorId: 'asdf',
-    creatorName: 'Asdf',
-    creatorUsername: 'asdf',
-    creatorAvatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=500&auto=format&fit=crop',
-    title: 'Asdf Content Update',
-    description: 'อัปเดตผลงานใหม่ล่าสุด ติดตามกันได้เลยครับ!',
-    thumbnail: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=1200&auto=format&fit=crop',
-    type: 'image',
-    isExclusive: false,
-    likes: 0,
-    comments: 0,
-    createdAt: new Date(Date.now() - 3600000 * 21).toISOString(),
-    tags: ['lifestyle'],
-  },
-];
+const MOCK_POST_IDS = new Set(['post_yumi_1', 'post_hana_1', 'post_moji_1', 'post_asdf_1']);
+
+const DEFAULT_CONTENT: Content[] = [];
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -193,15 +130,31 @@ async function saveToCloud(store: SyncStore): Promise<void> {
 
 async function getStore(): Promise<SyncStore> {
   if (globalStore._onlyhold_sync_store) {
+    globalStore._onlyhold_sync_store.content = globalStore._onlyhold_sync_store.content.filter(
+      (c: any) =>
+        c &&
+        c.id &&
+        !MOCK_POST_IDS.has(c.id) &&
+        c.title &&
+        (c.creatorName || c.creatorUsername || c.creatorId)
+    );
     return globalStore._onlyhold_sync_store;
   }
   const cloudData = await fetchFromCloud();
   if (cloudData && Array.isArray(cloudData.creators) && Array.isArray(cloudData.content)) {
+    cloudData.content = cloudData.content.filter(
+      (c: any) =>
+        c &&
+        c.id &&
+        !MOCK_POST_IDS.has(c.id) &&
+        c.title &&
+        (c.creatorName || c.creatorUsername || c.creatorId)
+    );
     globalStore._onlyhold_sync_store = cloudData;
   } else {
     globalStore._onlyhold_sync_store = {
       creators: [...DEFAULT_CREATORS],
-      content: [...DEFAULT_CONTENT],
+      content: [],
       deletedContentIds: [],
       deletedCreatorIds: [],
       comments: {},
