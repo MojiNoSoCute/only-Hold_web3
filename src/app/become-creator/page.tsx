@@ -55,7 +55,7 @@ export default function BecomeCreatorPage() {
 
     setError('');
 
-    // ── ตรวจสอบ ETH balance ก่อน ────────────────────────────────────────
+    // ── ตรวจสอบ ETH balance + isRegistered ผ่าน MetaMask provider ────────
     try {
       const { ethers } = require('ethers');
       const provider = new ethers.BrowserProvider((window as any).ethereum);
@@ -67,12 +67,13 @@ export default function BecomeCreatorPage() {
         return;
       }
 
-      // เช็คว่า register ไปแล้วหรือยัง
+      // เช็คว่า register ไปแล้วหรือยัง (ใช้ public RPC เพื่อหลีกเลี่ยง MetaMask cache)
       if (FACTORY_ADDRESS) {
+        const publicProvider = new ethers.JsonRpcProvider('https://ethereum-sepolia.publicnode.com');
         const factory = new ethers.Contract(
           FACTORY_ADDRESS,
           ['function isRegistered(address) view returns (bool)'],
-          provider
+          publicProvider
         );
         const alreadyRegistered: boolean = await factory.isRegistered(address);
         if (alreadyRegistered) {

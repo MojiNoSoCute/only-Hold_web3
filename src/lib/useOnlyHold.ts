@@ -26,6 +26,10 @@ const NFT_ABI = [
   'function mintPrice() view returns (uint256)',
   'function totalMinted() view returns (uint256)',
   'function maxSupply() view returns (uint256)',
+  'error InsufficientPayment(uint256 required, uint256 provided)',
+  'error MaxSupplyReached(uint256 maxSupply)',
+  'error MintingIsPaused()',
+  'event NFTMinted(address indexed to, uint256 indexed tokenId, uint256 price)',
 ];
 
 const SUB_ABI = [
@@ -36,6 +40,10 @@ const SUB_ABI = [
   'function monthlyPrice() view returns (uint256)',
   'function withdrawEarnings()',
   'function pendingCreatorEarnings() view returns (uint256)',
+  'error InsufficientDeposit(uint256 required, uint256 provided)',
+  'error NotMultipleOfMonthlyPrice(uint256 amount, uint256 monthlyPrice_)',
+  'error NoEarningsToWithdraw()',
+  'error NoBalanceToWithdraw()',
 ];
 
 const FACTORY_ABI = [
@@ -44,6 +52,14 @@ const FACTORY_ABI = [
   'function launchCreator(string username, string metadataURI, bool enableNFT, string nftName, string nftSymbol, uint256 nftMintPrice, uint256 nftMaxSupply, string nftBaseURI, bool enableSub, uint256 monthlyPrice, address customStablecoin) returns (address nftContract, address subContract)',
   'function creatorProfiles(address) view returns (address creatorAddress, address nftContract, address subscriptionContract, string username, string metadataURI, uint256 registeredAt, bool isActive)',
   'function isRegistered(address) view returns (bool)',
+  // custom errors — needed for ethers to decode revert reasons
+  'error AlreadyRegistered()',
+  'error UsernameTaken(string username)',
+  'error Blacklisted()',
+  'error MustEnableAtLeastOne()',
+  'error InvalidUsername()',
+  // events
+  'event CreatorLaunched(address indexed creator, string username, address nftContract, address subscriptionContract, uint256 timestamp)',
 ];
 
 const ERC20_ABI = [
