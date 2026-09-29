@@ -270,7 +270,9 @@ export default function PostDetailModal({ content, isSubscribed = false, onClose
                     <p className="text-white/60 text-xs max-w-sm mb-4">
                       {content.requiredTier === 'nft'
                         ? 'ต้องถือ NFT สมาชิกเพื่อเข้าถึงโพสต์นี้'
-                        : 'ต้องสมัครสมาชิก Stablecoin รายเดือนเพื่อเข้าถึงโพสต์นี้'}
+                        : content.requiredTier === 'stablecoin'
+                        ? 'ต้องสมัครสมาชิก Stablecoin รายเดือนเพื่อเข้าถึงโพสต์นี้'
+                        : 'ต้องเป็นสมาชิก NFT หรือ Stablecoin เพื่อเข้าถึงโพสต์นี้'}
                     </p>
                     <button
                       onClick={() => setSubscribeModalOpen(true)}

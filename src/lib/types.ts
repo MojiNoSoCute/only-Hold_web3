@@ -2,7 +2,7 @@
 // OnlyHold - Type Definitions
 // ============================================================
 
-export type SubscriptionTier = 'nft' | 'stablecoin';
+export type SubscriptionTier = 'both' | 'nft' | 'stablecoin';
 
 export interface Creator {
   id: string;

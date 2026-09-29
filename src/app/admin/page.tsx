@@ -354,9 +354,10 @@ export default function AdminPage() {
             </Row>
             {contentModal.data.isExclusive && (
               <Row label="Required Tier">
-                <select value={contentModal.data.requiredTier ?? 'nft'} onChange={e => setContentModal(p => p && ({ ...p, data: { ...p.data, requiredTier: e.target.value as any } }))} className={inputCls}>
-                  <option value="nft" className="bg-[#13131a]">🖼️ NFT Hold</option>
-                  <option value="stablecoin" className="bg-[#13131a]">💵 Stablecoin Sub</option>
+                <select value={contentModal.data.requiredTier ?? 'both'} onChange={e => setContentModal(p => p && ({ ...p, data: { ...p.data, requiredTier: e.target.value as any } }))} className={inputCls}>
+                  <option value="both" className="bg-[#13131a]">🔓 ดูได้ทั้งสองแบบ (NFT หรือ Stablecoin)</option>
+                  <option value="nft" className="bg-[#13131a]">🖼️ ผู้ถือ NFT สมาชิกเท่านั้น</option>
+                  <option value="stablecoin" className="bg-[#13131a]">💵 สมาชิกรายเดือน Stablecoin เท่านั้น</option>
                 </select>
               </Row>
             )}

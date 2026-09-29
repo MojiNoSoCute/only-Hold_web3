@@ -15,7 +15,7 @@ import Link from 'next/link';
 import WalletModal from '@/components/WalletModal';
 import { compressImageFile } from '@/lib/utils';
 import { useState, useEffect } from 'react';
-import type { Content, Creator } from '@/lib/types';
+import type { Content, Creator, SubscriptionTier } from '@/lib/types';
 
 interface CreatorProfile {
   nftContract: string;
@@ -67,7 +67,7 @@ export default function DashboardPage() {
     type: 'text' as 'text' | 'image' | 'video' | 'audio',
     thumbnail: '',
     isExclusive: true,
-    requiredTier: 'nft' as 'nft' | 'stablecoin',
+    requiredTier: 'both' as SubscriptionTier,
     tags: '',
   });
   const [postSuccessMsg, setPostSuccessMsg] = useState('');
@@ -262,7 +262,7 @@ export default function DashboardPage() {
       type: 'text',
       thumbnail: '',
       isExclusive: true,
-      requiredTier: 'nft',
+      requiredTier: 'both',
       tags: '',
     });
     refetch();
@@ -698,6 +698,7 @@ export default function DashboardPage() {
                     onChange={(e) => setPostForm({ ...postForm, requiredTier: e.target.value as any })}
                     className="w-full px-3 py-2 rounded-lg bg-[#13131a] border border-white/10 text-white text-xs focus:outline-none focus:border-purple-500/50"
                   >
+                    <option value="both">🔓 ดูได้ทั้งสองแบบ (สมาชิก NFT หรือ Stablecoin)</option>
                     <option value="nft">🖼️ ผู้ถือ NFT สมาชิกเท่านั้น</option>
                     <option value="stablecoin">💵 สมาชิกรายเดือน Stablecoin เท่านั้น</option>
                   </select>
