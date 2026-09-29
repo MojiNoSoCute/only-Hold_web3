@@ -29,18 +29,18 @@ export default function Navbar() {
           {/* Desktop Nav Links */}
           <div className="hidden md:flex items-center gap-6 text-sm text-white/60">
             <Link href="/explore" className="hover:text-white transition-colors">
-              Explore
+              สำรวจ
             </Link>
             <Link href="/creators" className="hover:text-white transition-colors">
-              Creators
+              ครีเอเตอร์
             </Link>
             {isConnected && (
               <Link href="/feed" className="hover:text-white transition-colors">
-                My Feed
+                ฟีดของฉัน
               </Link>
             )}
             <Link href="/become-creator" className="hover:text-white transition-colors">
-              Become a Creator
+              เป็นครีเอเตอร์
             </Link>
           </div>
 
@@ -64,33 +64,18 @@ export default function Navbar() {
                     className="absolute right-0 top-full mt-2 w-48 rounded-xl bg-[#13131a] border border-white/10 shadow-xl overflow-hidden z-50"
                     onMouseLeave={() => setDropdownOpen(false)}
                   >
-                    <Link
-                      href="/profile"
-                      className="flex items-center gap-2 px-4 py-3 text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors"
-                      onClick={() => setDropdownOpen(false)}
-                    >
-                      <span>👤</span> My Profile
+                    <Link href="/profile" className="flex items-center gap-2 px-4 py-3 text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors" onClick={() => setDropdownOpen(false)}>
+                      <span>👤</span> โปรไฟล์ของฉัน
                     </Link>
-                    <Link
-                      href="/dashboard"
-                      className="flex items-center gap-2 px-4 py-3 text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors"
-                      onClick={() => setDropdownOpen(false)}
-                    >
-                      <span>📊</span> Creator Dashboard
+                    <Link href="/dashboard" className="flex items-center gap-2 px-4 py-3 text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors" onClick={() => setDropdownOpen(false)}>
+                      <span>📊</span> แดชบอร์ดครีเอเตอร์
                     </Link>
-                    <Link
-                      href="/my-nfts"
-                      className="flex items-center gap-2 px-4 py-3 text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors"
-                      onClick={() => setDropdownOpen(false)}
-                    >
-                      <span>🖼️</span> My NFTs
+                    <Link href="/my-nfts" className="flex items-center gap-2 px-4 py-3 text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors" onClick={() => setDropdownOpen(false)}>
+                      <span>🖼️</span> NFT ของฉัน
                     </Link>
                     <hr className="border-white/5 my-1" />
-                    <button
-                      onClick={() => { disconnect(); setDropdownOpen(false); }}
-                      className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
-                    >
-                      <span>🔌</span> Disconnect
+                    <button onClick={() => { disconnect(); setDropdownOpen(false); }} className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 transition-colors">
+                      <span>🔌</span> ตัดการเชื่อมต่อ
                     </button>
                   </div>
                 )}
@@ -101,7 +86,7 @@ export default function Navbar() {
                 disabled={isConnecting}
                 className="px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white text-sm font-medium transition-all shadow-lg hover:shadow-purple-500/30 disabled:opacity-50"
               >
-                {isConnecting ? 'Connecting...' : 'Connect Wallet'}
+                {isConnecting ? 'กำลังเชื่อมต่อ...' : 'เชื่อมต่อกระเป๋า'}
               </button>
             )}
 
@@ -121,23 +106,14 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Mobile Menu */}
         {menuOpen && (
           <div className="md:hidden border-t border-white/5 bg-[#0a0a0f]/95 px-4 py-4 space-y-3">
-            <Link href="/explore" className="block text-white/70 hover:text-white py-2" onClick={() => setMenuOpen(false)}>
-              Explore
-            </Link>
-            <Link href="/creators" className="block text-white/70 hover:text-white py-2" onClick={() => setMenuOpen(false)}>
-              Creators
-            </Link>
+            <Link href="/explore" className="block text-white/70 hover:text-white py-2" onClick={() => setMenuOpen(false)}>สำรวจ</Link>
+            <Link href="/creators" className="block text-white/70 hover:text-white py-2" onClick={() => setMenuOpen(false)}>ครีเอเตอร์</Link>
             {isConnected && (
-              <Link href="/feed" className="block text-white/70 hover:text-white py-2" onClick={() => setMenuOpen(false)}>
-                My Feed
-              </Link>
+              <Link href="/feed" className="block text-white/70 hover:text-white py-2" onClick={() => setMenuOpen(false)}>ฟีดของฉัน</Link>
             )}
-            <Link href="/become-creator" className="block text-white/70 hover:text-white py-2" onClick={() => setMenuOpen(false)}>
-              Become a Creator
-            </Link>
+            <Link href="/become-creator" className="block text-white/70 hover:text-white py-2" onClick={() => setMenuOpen(false)}>เป็นครีเอเตอร์</Link>
           </div>
         )}
       </nav>

@@ -49,17 +49,17 @@ export default function SubscribeModal({ creatorId, creatorName, onClose }: Subs
           <div className="w-16 h-16 rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center mx-auto mb-4 text-3xl">
             🎉
           </div>
-          <h2 className="text-xl font-bold text-white mb-2">You're In!</h2>
+          <h2 className="text-xl font-bold text-white mb-2">เข้าร่วมแล้ว!</h2>
           <p className="text-white/60 text-sm mb-6">
             {activeTab === 'nft'
-              ? `Your ${creatorName} NFT membership has been minted.`
-              : `You're now subscribed to ${creatorName} for ${months} month(s).`}
+              ? `NFT สมาชิก ${creatorName} ของคุณถูก Mint แล้ว`
+              : `คุณสมัครสมาชิก ${creatorName} เป็นเวลา ${months} เดือนแล้ว`}
           </p>
           <button
             onClick={onClose}
             className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-medium hover:opacity-90 transition-opacity"
           >
-            Explore Exclusive Content
+            ดูคอนเทนต์พิเศษ
           </button>
         </div>
       </div>
@@ -79,8 +79,8 @@ export default function SubscribeModal({ creatorId, creatorName, onClose }: Subs
           <div className="p-6 border-b border-white/5">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="font-bold text-white text-lg">Subscribe to {creatorName}</h2>
-                <p className="text-white/40 text-sm mt-0.5">Choose your access method</p>
+                <h2 className="font-bold text-white text-lg">สมัครสมาชิก {creatorName}</h2>
+                <p className="text-white/40 text-sm mt-0.5">เลือกวิธีการเข้าถึง</p>
               </div>
               <button onClick={onClose} className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 transition-colors">✕</button>
             </div>
@@ -88,16 +88,10 @@ export default function SubscribeModal({ creatorId, creatorName, onClose }: Subs
 
           {/* Tabs */}
           <div className="flex p-1.5 m-4 bg-white/3 rounded-xl border border-white/5">
-            <button
-              onClick={() => setActiveTab('nft')}
-              className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${activeTab === 'nft' ? 'bg-purple-600 text-white shadow-lg' : 'text-white/50 hover:text-white'}`}
-            >
-              🖼️ Hold NFT
+            <button onClick={() => setActiveTab('nft')} className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${activeTab === 'nft' ? 'bg-purple-600 text-white shadow-lg' : 'text-white/50 hover:text-white'}`}>
+              🖼️ ถือ NFT
             </button>
-            <button
-              onClick={() => setActiveTab('stablecoin')}
-              className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${activeTab === 'stablecoin' ? 'bg-green-600 text-white shadow-lg' : 'text-white/50 hover:text-white'}`}
-            >
+            <button onClick={() => setActiveTab('stablecoin')} className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${activeTab === 'stablecoin' ? 'bg-green-600 text-white shadow-lg' : 'text-white/50 hover:text-white'}`}>
               💵 Stablecoin
             </button>
           </div>
@@ -112,24 +106,24 @@ export default function SubscribeModal({ creatorId, creatorName, onClose }: Subs
                       🎫
                     </div>
                     <div>
-                      <h3 className="font-bold text-white text-sm">{creatorName} Membership NFT</h3>
+                      <h3 className="font-bold text-white text-sm">NFT สมาชิก {creatorName}</h3>
                       <p className="text-white/50 text-xs mt-1">
-                        Mint a soulbound NFT that grants you lifetime access. Trade or sell your membership anytime.
+                        Mint NFT ที่มอบสิทธิ์เข้าถึงตลอดชีพ ซื้อขายหรือโอนสมาชิกภาพได้ทุกเมื่อ
                       </p>
                     </div>
                   </div>
                   <div className="mt-4 flex items-center justify-between py-2 border-t border-purple-500/20">
-                    <span className="text-white/50 text-sm">Mint Price</span>
+                    <span className="text-white/50 text-sm">ราคา Mint</span>
                     <span className="text-purple-300 font-bold">{creator.nftPrice} ETH</span>
                   </div>
                 </div>
 
                 <div className="space-y-2 text-sm">
                   {[
-                    'Lifetime access to all exclusive content',
-                    'Tradeable on OpenSea & other marketplaces',
-                    'Access to token-gated community',
-                    'Early access to new drops',
+                    'เข้าถึงคอนเทนต์พิเศษตลอดชีพ',
+                    'ซื้อขายได้บน OpenSea และ marketplace อื่นๆ',
+                    'เข้าร่วมชุมชน token-gated',
+                    'สิทธิ์เข้าถึงก่อนใครสำหรับ drops ใหม่',
                   ].map((benefit) => (
                     <div key={benefit} className="flex items-center gap-2 text-white/60">
                       <svg className="w-4 h-4 text-green-400 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
@@ -146,16 +140,11 @@ export default function SubscribeModal({ creatorId, creatorName, onClose }: Subs
                   className="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-medium text-sm hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {isProcessing ? (
-                    <>
-                      <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" />
-                      </svg>
-                      Minting NFT...
-                    </>
+                    <><svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" /></svg>กำลัง Mint NFT...</>
                   ) : !isConnected ? (
-                    'Connect Wallet to Mint'
+                    'เชื่อมต่อกระเป๋าเพื่อ Mint'
                   ) : (
-                    `Mint for ${creator.nftPrice} ETH`
+                    `Mint ในราคา ${creator.nftPrice} ETH`
                   )}
                 </button>
               </div>
@@ -168,9 +157,9 @@ export default function SubscribeModal({ creatorId, creatorName, onClose }: Subs
                       💰
                     </div>
                     <div>
-                      <h3 className="font-bold text-white text-sm">Deposit & Subscribe</h3>
+                      <h3 className="font-bold text-white text-sm">ฝากและสมัครสมาชิก</h3>
                       <p className="text-white/50 text-xs mt-1">
-                        Deposit USDC. Access remains active as long as your balance covers the subscription. Withdraw anytime.
+                        ฝาก USDC การเข้าถึงจะใช้งานได้ตลอดที่ยอดเงินครอบคลุมค่าสมาชิก ถอนได้ทุกเมื่อ
                       </p>
                     </div>
                   </div>
@@ -178,7 +167,7 @@ export default function SubscribeModal({ creatorId, creatorName, onClose }: Subs
 
                 {/* Months Selector */}
                 <div>
-                  <label className="text-white/60 text-sm mb-2 block">Select Duration</label>
+                  <label className="text-white/60 text-sm mb-2 block">เลือกระยะเวลา</label>
                   <div className="flex gap-2">
                     {[1, 3, 6, 12].map((m) => (
                       <button
@@ -193,20 +182,20 @@ export default function SubscribeModal({ creatorId, creatorName, onClose }: Subs
                 </div>
 
                 {/* Pricing breakdown */}
-                <div className="bg-white/3 border border-white/5 rounded-xl p-3 space-y-2 text-sm">
-                  <div className="flex justify-between text-white/50">
-                    <span>Rate</span>
-                    <span>${creator.stablecoinPrice} USDC/month</span>
+                  <div className="bg-white/3 border border-white/5 rounded-xl p-3 space-y-2 text-sm">
+                    <div className="flex justify-between text-white/50">
+                      <span>ราคา</span>
+                      <span>${creator.stablecoinPrice} USDC/เดือน</span>
+                    </div>
+                    <div className="flex justify-between text-white/50">
+                      <span>ระยะเวลา</span>
+                      <span>{months} เดือน</span>
+                    </div>
+                    <div className="border-t border-white/5 pt-2 flex justify-between text-white font-bold">
+                      <span>ยอดฝากรวม</span>
+                      <span className="text-green-400">${stablecoinTotal} USDC</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between text-white/50">
-                    <span>Duration</span>
-                    <span>{months} month{months > 1 ? 's' : ''}</span>
-                  </div>
-                  <div className="border-t border-white/5 pt-2 flex justify-between text-white font-bold">
-                    <span>Total Deposit</span>
-                    <span className="text-green-400">${stablecoinTotal} USDC</span>
-                  </div>
-                </div>
 
                 <button
                   onClick={handleSubscribe}
@@ -214,16 +203,11 @@ export default function SubscribeModal({ creatorId, creatorName, onClose }: Subs
                   className="w-full py-3.5 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 text-white font-medium text-sm hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {isProcessing ? (
-                    <>
-                      <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" />
-                      </svg>
-                      Depositing USDC...
-                    </>
+                    <><svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" /></svg>กำลังฝาก USDC...</>
                   ) : !isConnected ? (
-                    'Connect Wallet'
+                    'เชื่อมต่อกระเป๋า'
                   ) : (
-                    `Deposit $${stablecoinTotal} USDC`
+                    `ฝาก $${stablecoinTotal} USDC`
                   )}
                 </button>
               </div>

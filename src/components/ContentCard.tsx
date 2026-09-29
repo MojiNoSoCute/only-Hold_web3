@@ -46,10 +46,8 @@ export default function ContentCard({ content, isSubscribed = false }: ContentCa
             <span className="text-base">{CONTENT_TYPE_ICONS[content.type]}</span>
             {content.isExclusive && (
               <span className="text-xs px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center gap-1">
-                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 2a5 5 0 014.9 4H20a1 1 0 011 1v1a1 1 0 01-1 1H4a1 1 0 01-1-1V7a1 1 0 011-1h3.1A5 5 0 0112 2zm0 2a3 3 0 00-2.83 2h5.66A3 3 0 0012 4zM4 11h16l-1 9H5l-1-9z" />
-                </svg>
-                Exclusive
+                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a5 5 0 014.9 4H20a1 1 0 011 1v1a1 1 0 01-1 1H4a1 1 0 01-1-1V7a1 1 0 011-1h3.1A5 5 0 0112 2zm0 2a3 3 0 00-2.83 2h5.66A3 3 0 0012 4zM4 11h16l-1 9H5l-1-9z" /></svg>
+                พิเศษ
               </span>
             )}
           </div>
@@ -72,15 +70,12 @@ export default function ContentCard({ content, isSubscribed = false }: ContentCa
                     <path d="M12 2a5 5 0 014.9 4H20a1 1 0 011 1v1a1 1 0 01-1 1H4a1 1 0 01-1-1V7a1 1 0 011-1h3.1A5 5 0 0112 2zm0 2a3 3 0 00-2.83 2h5.66A3 3 0 0012 4zM4 11h16l-1 9H5l-1-9z" />
                   </svg>
                 </div>
-                <p className="text-white/90 text-sm font-medium mb-1">Exclusive Content</p>
+                <p className="text-white/90 text-sm font-medium mb-1">คอนเทนต์พิเศษ</p>
                 <p className="text-white/50 text-xs">
-                  {content.requiredTier === 'nft' ? 'Hold NFT' : 'Subscribe'} to unlock
+                  {content.requiredTier === 'nft' ? 'ถือ NFT' : 'สมัครสมาชิก'} เพื่อปลดล็อก
                 </p>
-                <button
-                  onClick={() => setSubscribeModalOpen(true)}
-                  className="mt-3 px-4 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-medium hover:opacity-90 transition-opacity"
-                >
-                  Unlock Access
+                <button onClick={() => setSubscribeModalOpen(true)} className="mt-3 px-4 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-medium hover:opacity-90 transition-opacity">
+                  ปลดล็อกการเข้าถึง
                 </button>
               </div>
             )}
@@ -140,13 +135,9 @@ export default function ContentCard({ content, isSubscribed = false }: ContentCa
             </button>
           </div>
 
-          {/* Subscribe CTA */}
           {!canView && (
-            <button
-              onClick={() => setSubscribeModalOpen(true)}
-              className="text-xs px-3 py-1.5 rounded-lg border border-purple-500/40 text-purple-400 hover:bg-purple-500/10 transition-colors"
-            >
-              Subscribe
+            <button onClick={() => setSubscribeModalOpen(true)} className="text-xs px-3 py-1.5 rounded-lg border border-purple-500/40 text-purple-400 hover:bg-purple-500/10 transition-colors">
+              สมัครสมาชิก
             </button>
           )}
         </div>

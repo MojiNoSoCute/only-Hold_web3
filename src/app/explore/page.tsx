@@ -23,8 +23,8 @@ export default function ExplorePage() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-12">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">Explore</h1>
-        <p className="text-white/50">Discover exclusive content from top Web3 creators</p>
+        <h1 className="text-3xl font-bold text-white mb-2">สำรวจ</h1>
+        <p className="text-white/50">ค้นพบคอนเทนต์พิเศษจากครีเอเตอร์ Web3 ชั้นนำ</p>
       </div>
 
       <div className="grid lg:grid-cols-4 gap-8">
@@ -53,24 +53,16 @@ export default function ExplorePage() {
             <div className="flex flex-wrap gap-2">
               <div className="flex bg-white/3 border border-white/5 rounded-lg overflow-hidden">
                 {(['all', 'free', 'exclusive'] as const).map((type) => (
-                  <button
-                    key={type}
-                    onClick={() => setContentType(type)}
-                    className={`px-3 py-1.5 text-xs capitalize transition-colors ${contentType === type ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/60'}`}
-                  >
-                    {type}
+                  <button key={type} onClick={() => setContentType(type)} className={`px-3 py-1.5 text-xs capitalize transition-colors ${contentType === type ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/60'}`}>
+                    {type === 'all' ? 'ทั้งหมด' : type === 'free' ? 'ฟรี' : 'พิเศษ'}
                   </button>
                 ))}
               </div>
 
               <div className="flex bg-white/3 border border-white/5 rounded-lg overflow-hidden">
                 {(['all', 'video', 'image', 'audio', 'text'] as const).map((type) => (
-                  <button
-                    key={type}
-                    onClick={() => setMediaType(type)}
-                    className={`px-3 py-1.5 text-xs capitalize transition-colors ${mediaType === type ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/60'}`}
-                  >
-                    {type}
+                  <button key={type} onClick={() => setMediaType(type)} className={`px-3 py-1.5 text-xs capitalize transition-colors ${mediaType === type ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/60'}`}>
+                    {type === 'all' ? 'ทั้งหมด' : type === 'video' ? 'วิดีโอ' : type === 'image' ? 'รูปภาพ' : type === 'audio' ? 'เสียง' : 'ข้อความ'}
                   </button>
                 ))}
               </div>
@@ -80,7 +72,7 @@ export default function ExplorePage() {
           {filteredContent.length === 0 ? (
             <div className="text-center py-20">
               <div className="text-5xl mb-4">🎨</div>
-              <p className="text-white/50">No content found. Try adjusting your filters.</p>
+              <p className="text-white/50">ไม่พบคอนเทนต์ ลองเปลี่ยนตัวกรองดู</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -96,7 +88,7 @@ export default function ExplorePage() {
           {/* Trending Creators */}
           <div className="bg-[#13131a] border border-white/5 rounded-2xl p-4">
             <h3 className="font-bold text-white text-sm mb-4 flex items-center gap-2">
-              🔥 Trending Creators
+              🔥 ครีเอเตอร์มาแรง
             </h3>
             <div className="space-y-3">
               {trendingCreators.map((creator, i) => (
@@ -105,7 +97,7 @@ export default function ExplorePage() {
                   <img src={creator.avatar} alt={creator.name} className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-pink-600" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-white group-hover:text-purple-300 transition-colors truncate font-medium">{creator.name}</p>
-                    <p className="text-xs text-white/30">{creator.totalSubscribers.toLocaleString()} fans</p>
+                    <p className="text-xs text-white/30">{creator.totalSubscribers.toLocaleString()} แฟนคลับ</p>
                   </div>
                 </a>
               ))}
@@ -114,7 +106,7 @@ export default function ExplorePage() {
 
           {/* Chain Support */}
           <div className="bg-[#13131a] border border-white/5 rounded-2xl p-4">
-            <h3 className="font-bold text-white text-sm mb-4">⛓️ Supported Chains</h3>
+            <h3 className="font-bold text-white text-sm mb-4">⛓️ Chain ที่รองรับ</h3>
             <div className="space-y-2">
               {[
                 { name: 'Ethereum', symbol: 'ETH', color: 'bg-blue-500' },
@@ -133,7 +125,7 @@ export default function ExplorePage() {
 
           {/* Stablecoin Support */}
           <div className="bg-[#13131a] border border-white/5 rounded-2xl p-4">
-            <h3 className="font-bold text-white text-sm mb-4">💵 Accepted Stablecoins</h3>
+            <h3 className="font-bold text-white text-sm mb-4">💵 Stablecoin ที่รับ</h3>
             <div className="flex flex-wrap gap-2">
               {['USDC', 'USDT', 'DAI', 'LUSD'].map((coin) => (
                 <span key={coin} className="px-2 py-1 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-xs font-mono">

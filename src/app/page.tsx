@@ -10,10 +10,10 @@ import { formatNumber } from '@/lib/utils';
 import WalletModal from '@/components/WalletModal';
 
 const STATS = [
-  { value: '12,400+', label: 'Active Creators' },
-  { value: '$4.2M', label: 'Creator Earnings' },
-  { value: '89,000+', label: 'NFT Memberships' },
-  { value: '320,000+', label: 'Fans' },
+  { value: '12,400+', label: 'ครีเอเตอร์ที่ใช้งานอยู่' },
+  { value: '$4.2M', label: 'รายได้ครีเอเตอร์' },
+  { value: '89,000+', label: 'สมาชิก NFT' },
+  { value: '320,000+', label: 'แฟนคลับ' },
 ];
 
 export default function HomePage() {
@@ -42,19 +42,19 @@ export default function HomePage() {
           {/* Pill badge */}
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs font-medium mb-6">
             <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
-            Web3-Native Creator Platform
+            แพลตฟอร์มครีเอเตอร์บน Web3
           </div>
 
           <h1 className="text-4xl sm:text-6xl font-extrabold leading-tight mb-6">
-            <span className="text-white">Support Creators</span>
+            <span className="text-white">สนับสนุนครีเอเตอร์</span>
             <br />
-            <span className="gradient-text">Hold NFTs. Unlock Everything.</span>
+            <span className="gradient-text">ถือ NFT ปลดล็อกทุกอย่าง</span>
           </h1>
 
           <p className="text-white/60 text-lg sm:text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
-            OnlyHold is the first platform where creator subscriptions are on-chain.{' '}
-            <strong className="text-white/80">Hold an NFT</strong> for lifetime access or{' '}
-            <strong className="text-white/80">deposit stablecoins</strong> for monthly access. Creators earn instantly.
+            OnlyHold คือแพลตฟอร์มแรกที่ระบบสมัครสมาชิกอยู่บน Blockchain{' '}
+            <strong className="text-white/80">ถือ NFT</strong> รับสิทธิ์ตลอดชีพ หรือ{' '}
+            <strong className="text-white/80">ฝาก Stablecoin</strong> สำหรับการเข้าถึงรายเดือน ครีเอเตอร์รับเงินทันที
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -63,21 +63,21 @@ export default function HomePage() {
                 onClick={() => setWalletModalOpen(true)}
                 className="px-8 py-3.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold text-base hover:opacity-90 transition-all shadow-xl hover:shadow-purple-500/30"
               >
-                Connect Wallet & Explore
+                เชื่อมต่อกระเป๋า &amp; สำรวจ
               </button>
             ) : (
               <Link
                 href="/explore"
                 className="px-8 py-3.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold text-base hover:opacity-90 transition-all shadow-xl hover:shadow-purple-500/30"
               >
-                Browse Creators
+                ค้นหาครีเอเตอร์
               </Link>
             )}
             <Link
               href="/become-creator"
               className="px-8 py-3.5 rounded-xl border border-white/10 text-white/80 font-semibold text-base hover:bg-white/5 transition-all"
             >
-              Become a Creator →
+              เป็นครีเอเตอร์ →
             </Link>
           </div>
         </div>
@@ -97,9 +97,9 @@ export default function HomePage() {
       <section className="py-20 px-4 border-t border-white/5">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-white mb-3">How OnlyHold Works</h2>
+            <h2 className="text-3xl font-bold text-white mb-3">OnlyHold ทำงานอย่างไร</h2>
             <p className="text-white/50 max-w-xl mx-auto">
-              Two ways to support your favourite creators on-chain. Both with instant, trustless payments.
+              สองวิธีในการสนับสนุนครีเอเตอร์บน Blockchain ทั้งคู่จ่ายเงินทันทีไม่ต้องพึ่งตัวกลาง
             </p>
           </div>
 
@@ -109,12 +109,12 @@ export default function HomePage() {
               <div className="w-12 h-12 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-2xl mb-4">
                 🖼️
               </div>
-              <h3 className="text-white font-bold text-xl mb-2">Hold NFT Membership</h3>
+              <h3 className="text-white font-bold text-xl mb-2">ถือสมาชิก NFT</h3>
               <p className="text-white/50 text-sm leading-relaxed mb-4">
-                Mint the creator's membership NFT for a one-time payment. Get <strong className="text-white/70">lifetime access</strong> to exclusive content. Your NFT is tradeable — sell your membership anytime.
+                Mint NFT สมาชิกของครีเอเตอร์ด้วยการจ่ายครั้งเดียว รับ <strong className="text-white/70">สิทธิ์ตลอดชีพ</strong> ในการดูคอนเทนต์พิเศษ NFT ของคุณสามารถซื้อขายได้ — ขายสมาชิกภาพได้ทุกเมื่อ
               </p>
               <ul className="space-y-2 text-sm">
-                {['One-time payment', 'Lifetime content access', 'Tradeable on NFT markets', 'Token-gated community access'].map((item) => (
+                {['จ่ายครั้งเดียว', 'เข้าถึงคอนเทนต์ตลอดชีพ', 'ซื้อขายได้บน NFT marketplace', 'เข้าร่วมชุมชน token-gated'].map((item) => (
                   <li key={item} className="flex items-center gap-2 text-white/60">
                     <span className="w-4 h-4 rounded-full bg-purple-500/30 text-purple-400 text-[10px] flex items-center justify-center flex-shrink-0">✓</span>
                     {item}
@@ -122,7 +122,7 @@ export default function HomePage() {
                 ))}
               </ul>
               <div className="mt-4 pt-4 border-t border-white/5">
-                <span className="text-purple-400 font-mono text-sm">Starting from 0.03 ETH</span>
+                <span className="text-purple-400 font-mono text-sm">เริ่มต้นที่ 0.03 ETH</span>
               </div>
             </div>
 
@@ -131,12 +131,12 @@ export default function HomePage() {
               <div className="w-12 h-12 rounded-xl bg-green-500/20 border border-green-500/30 flex items-center justify-center text-2xl mb-4">
                 💵
               </div>
-              <h3 className="text-white font-bold text-xl mb-2">Deposit Stablecoin</h3>
+              <h3 className="text-white font-bold text-xl mb-2">ฝาก Stablecoin</h3>
               <p className="text-white/50 text-sm leading-relaxed mb-4">
-                Deposit USDC / USDT to subscribe monthly. Access is streamed automatically — <strong className="text-white/70">withdraw your balance</strong> anytime and cancel instantly with no friction.
+                ฝาก USDC / USDT เพื่อสมัครรายเดือน ระบบจัดการให้อัตโนมัติ — <strong className="text-white/70">ถอนเงินคงเหลือ</strong> ได้ทุกเมื่อ ยกเลิกได้ทันทีไม่ยุ่งยาก
               </p>
               <ul className="space-y-2 text-sm">
-                {['Flexible monthly payments', 'Cancel & withdraw anytime', 'Automatic streaming payments', 'Multi-chain support'].map((item) => (
+                {['จ่ายรายเดือนยืดหยุ่น', 'ยกเลิกและถอนได้ทุกเมื่อ', 'ระบบชำระเงินอัตโนมัติ', 'รองรับหลาย Chain'].map((item) => (
                   <li key={item} className="flex items-center gap-2 text-white/60">
                     <span className="w-4 h-4 rounded-full bg-green-500/30 text-green-400 text-[10px] flex items-center justify-center flex-shrink-0">✓</span>
                     {item}
@@ -144,7 +144,7 @@ export default function HomePage() {
                 ))}
               </ul>
               <div className="mt-4 pt-4 border-t border-white/5">
-                <span className="text-green-400 font-mono text-sm">Starting from $8 USDC/month</span>
+                <span className="text-green-400 font-mono text-sm">เริ่มต้นที่ $8 USDC/เดือน</span>
               </div>
             </div>
           </div>
@@ -156,11 +156,11 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto">
           <div className="flex items-end justify-between mb-8">
             <div>
-              <h2 className="text-3xl font-bold text-white">Featured Creators</h2>
-              <p className="text-white/50 mt-1">Join the top creators building on-chain communities</p>
+              <h2 className="text-3xl font-bold text-white">ครีเอเตอร์แนะนำ</h2>
+              <p className="text-white/50 mt-1">ร่วมกับครีเอเตอร์ชั้นนำที่สร้างชุมชนบน Blockchain</p>
             </div>
             <Link href="/creators" className="text-purple-400 hover:text-purple-300 text-sm transition-colors">
-              View all →
+              ดูทั้งหมด →
             </Link>
           </div>
 
@@ -177,11 +177,11 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto">
           <div className="flex items-end justify-between mb-6">
             <div>
-              <h2 className="text-3xl font-bold text-white">Latest Content</h2>
-              <p className="text-white/50 mt-1">Fresh drops from your favourite creators</p>
+              <h2 className="text-3xl font-bold text-white">คอนเทนต์ล่าสุด</h2>
+              <p className="text-white/50 mt-1">อัปเดตใหม่จากครีเอเตอร์ที่คุณชื่นชอบ</p>
             </div>
             <Link href="/explore" className="text-purple-400 hover:text-purple-300 text-sm transition-colors">
-              View all →
+              ดูทั้งหมด →
             </Link>
           </div>
 
@@ -218,16 +218,16 @@ export default function HomePage() {
             <div className="absolute inset-0 bg-gradient-to-br from-purple-600/10 to-pink-600/10" />
             <div className="relative z-10">
               <h2 className="text-3xl sm:text-4xl font-extrabold text-white mb-4">
-                Ready to monetize your content?
+                พร้อมสร้างรายได้จากคอนเทนต์แล้วหรือยัง?
               </h2>
               <p className="text-white/60 text-lg mb-8 max-w-xl mx-auto">
-                Launch your NFT membership or stablecoin subscription in minutes. Keep 95% of your earnings.
+                เปิดตัว NFT Membership หรือ Stablecoin Subscription ได้ภายในไม่กี่นาที เก็บรายได้ไว้ 95%
               </p>
               <Link
                 href="/become-creator"
                 className="inline-block px-10 py-4 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold text-base hover:opacity-90 transition-all shadow-xl hover:shadow-purple-500/40"
               >
-                Start Creating for Free
+                เริ่มสร้างฟรี
               </Link>
             </div>
           </div>
@@ -245,13 +245,13 @@ export default function HomePage() {
               <span className="font-bold">Only<span className="gradient-text">Hold</span></span>
             </div>
             <div className="flex gap-8 text-sm text-white/40">
-              <Link href="/about" className="hover:text-white/70 transition-colors">About</Link>
-              <Link href="/creators" className="hover:text-white/70 transition-colors">Creators</Link>
-              <Link href="/docs" className="hover:text-white/70 transition-colors">Docs</Link>
+              <Link href="/about" className="hover:text-white/70 transition-colors">เกี่ยวกับเรา</Link>
+              <Link href="/creators" className="hover:text-white/70 transition-colors">ครีเอเตอร์</Link>
+              <Link href="/docs" className="hover:text-white/70 transition-colors">เอกสาร</Link>
               <a href="https://twitter.com" target="_blank" rel="noopener" className="hover:text-white/70 transition-colors">Twitter</a>
               <a href="https://discord.gg" target="_blank" rel="noopener" className="hover:text-white/70 transition-colors">Discord</a>
             </div>
-            <p className="text-white/20 text-xs">© 2025 OnlyHold. All rights reserved.</p>
+            <p className="text-white/20 text-xs">© 2025 OnlyHold สงวนลิขสิทธิ์</p>
           </div>
         </div>
       </footer>

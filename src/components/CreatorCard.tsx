@@ -68,11 +68,11 @@ export default function CreatorCard({ creator }: CreatorCardProps) {
           <div className="flex items-center gap-4 text-xs text-white/40 mb-3">
             <div className="flex items-center gap-1">
               <span>👥</span>
-              <span>{formatNumber(creator.totalSubscribers)} fans</span>
+              <span>{formatNumber(creator.totalSubscribers)} แฟนคลับ</span>
             </div>
             <div className="flex items-center gap-1">
               <span>📄</span>
-              <span>{creator.contentCount} posts</span>
+              <span>{creator.contentCount} โพสต์</span>
             </div>
           </div>
 
@@ -81,13 +81,12 @@ export default function CreatorCard({ creator }: CreatorCardProps) {
             {creator.nftPrice && (
               <div className="flex-1 bg-purple-500/10 border border-purple-500/20 rounded-lg px-2 py-1.5 text-center">
                 <p className="text-purple-400 font-bold text-xs">{creator.nftPrice} ETH</p>
-                <p className="text-white/30 text-[10px]">NFT Hold</p>
-              </div>
+                <p className="text-white/30 text-[10px]">NFT Hold</p>              </div>
             )}
             {creator.stablecoinPrice && (
               <div className="flex-1 bg-green-500/10 border border-green-500/20 rounded-lg px-2 py-1.5 text-center">
                 <p className="text-green-400 font-bold text-xs">${creator.stablecoinPrice}/mo</p>
-                <p className="text-white/30 text-[10px]">Stablecoin</p>
+                <p className="text-white/30 text-[10px]">รายเดือน</p>
               </div>
             )}
           </div>

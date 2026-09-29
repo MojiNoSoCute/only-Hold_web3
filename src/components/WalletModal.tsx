@@ -7,10 +7,10 @@ interface WalletModalProps {
 }
 
 const WALLETS = [
-  { id: 'metamask', name: 'MetaMask', icon: '🦊', description: 'Connect with MetaMask browser extension' },
-  { id: 'walletconnect', name: 'WalletConnect', icon: '🔗', description: 'Scan with any WalletConnect wallet' },
-  { id: 'coinbase', name: 'Coinbase Wallet', icon: '💙', description: 'Connect with Coinbase Wallet' },
-  { id: 'trust', name: 'Trust Wallet', icon: '🛡️', description: 'Connect with Trust Wallet' },
+  { id: 'metamask', name: 'MetaMask', icon: '🦊', description: 'เชื่อมต่อด้วย MetaMask extension' },
+  { id: 'walletconnect', name: 'WalletConnect', icon: '🔗', description: 'สแกน QR ด้วยกระเป๋า WalletConnect' },
+  { id: 'coinbase', name: 'Coinbase Wallet', icon: '💙', description: 'เชื่อมต่อด้วย Coinbase Wallet' },
+  { id: 'trust', name: 'Trust Wallet', icon: '🛡️', description: 'เชื่อมต่อด้วย Trust Wallet' },
 ];
 
 export default function WalletModal({ onClose }: WalletModalProps) {
@@ -35,8 +35,8 @@ export default function WalletModal({ onClose }: WalletModalProps) {
         <div className="p-6 border-b border-white/5">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-bold text-white">Connect Wallet</h2>
-              <p className="text-sm text-white/50 mt-0.5">Choose your preferred wallet</p>
+              <h2 className="text-lg font-bold text-white">เชื่อมต่อกระเป๋า</h2>
+              <p className="text-sm text-white/50 mt-0.5">เลือกกระเป๋าที่คุณต้องการใช้</p>
             </div>
             <button
               onClick={onClose}
@@ -73,10 +73,10 @@ export default function WalletModal({ onClose }: WalletModalProps) {
         {/* Footer */}
         <div className="px-6 pb-6 text-center">
           <p className="text-xs text-white/30">
-            By connecting, you agree to the{' '}
-            <span className="text-purple-400 cursor-pointer hover:underline">Terms of Service</span>{' '}
-            and{' '}
-            <span className="text-purple-400 cursor-pointer hover:underline">Privacy Policy</span>
+            การเชื่อมต่อถือว่าคุณยอมรับ{' '}
+            <span className="text-purple-400 cursor-pointer hover:underline">ข้อกำหนดการใช้งาน</span>{' '}
+            และ{' '}
+            <span className="text-purple-400 cursor-pointer hover:underline">นโยบายความเป็นส่วนตัว</span>
           </p>
         </div>
       </div>
