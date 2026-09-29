@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { useChainData } from '@/lib/useChainData';
+import Link from 'next/link';
 import ContentCard from '@/components/ContentCard';
-import CreatorCard from '@/components/CreatorCard';
 
 export default function ExplorePage() {
   const { creators, content, categories, isLoading } = useChainData();
@@ -12,7 +12,14 @@ export default function ExplorePage() {
   const [mediaType, setMediaType] = useState<'all' | 'video' | 'image' | 'audio' | 'text'>('all');
 
   const filteredContent = content.filter((c) => {
-    const creator = creators.find((cr) => cr.id === c.creatorId || cr.username === c.creatorUsername);
+    if (!c) return false;
+    const creator = creators.find(
+      (cr) =>
+        cr &&
+        ((cr.username && c.creatorUsername && cr.username.toLowerCase() === c.creatorUsername.toLowerCase()) ||
+          (cr.id && c.creatorId && cr.id.toLowerCase() === c.creatorId.toLowerCase()) ||
+          (cr.address && c.creatorId && cr.address.toLowerCase() === c.creatorId.toLowerCase()))
+    );
     const matchCategory = selectedCategory === 'all' || creator?.category === selectedCategory;
     const matchExclusive = contentType === 'all' || (contentType === 'exclusive' ? c.isExclusive : !c.isExclusive);
     const matchMedia = mediaType === 'all' || c.type === mediaType;
@@ -85,9 +92,18 @@ export default function ExplorePage() {
               <p className="text-white/40">กำลังโหลดจาก Sepolia...</p>
             </div>
           ) : filteredContent.length === 0 ? (
-            <div className="text-center py-20">
-              <div className="text-5xl mb-4">🎨</div>
-              <p className="text-white/50">ไม่พบคอนเทนต์ ลองเปลี่ยนตัวกรองดู</p>
+            <div className="text-center py-16 px-4 bg-[#13131a] border border-white/5 rounded-2xl">
+              <div className="text-5xl mb-4">✍️</div>
+              <h3 className="text-lg font-bold text-white mb-2">ยังไม่มีโพสต์จากครีเอเตอร์</h3>
+              <p className="text-white/50 text-sm mb-6 max-w-md mx-auto">
+                เมื่อคุณหรือครีเอเตอร์สร้างโพสต์ใหม่ในหน้า Dashboard โพสต์จริงทั้งหมดจะมาปรากฏที่นี่แบบออนไลน์ทั่วโลกทันที!
+              </p>
+              <Link
+                href="/dashboard"
+                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold text-sm hover:opacity-90 transition-all shadow-lg"
+              >
+                <span>➕</span> สร้างโพสต์ใหม่ใน Dashboard
+              </Link>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
