@@ -1,0 +1,357 @@
+/**
+ * useOnlyHold — React hook for interacting with OnlyHold smart contracts
+ *
+ * This hook wraps raw ethers.js calls into a clean interface that the
+ * frontend components can use to:
+ *   - Check if a wallet has access to a creator's content
+ *   - Mint an NFT membership
+ *   - Deposit stablecoin for a subscription
+ *   - Withdraw a stablecoin subscription balance
+ *   - Register as a creator via the factory
+ *
+ * The ABI fragments are minimal — only the functions we actually call.
+ * Replace with full generated TypeChain types after `npx hardhat compile`.
+ */
+'use client';
+
+import { useCallback, useState } from 'react';
+import { useWeb3 } from './Web3Provider';
+
+// ─── Minimal ABI Fragments ─────────────────────────────────────────────────
+
+const NFT_ABI = [
+  'function mint(address to, string tokenURI) payable',
+  'function isMember(address account) view returns (bool)',
+  'function balanceOf(address owner) view returns (uint256)',
+  'function mintPrice() view returns (uint256)',
+  'function totalMinted() view returns (uint256)',
+  'function maxSupply() view returns (uint256)',
+];
+
+const SUB_ABI = [
+  'function subscribe(uint256 amount)',
+  'function withdrawBalance()',
+  'function isSubscribed(address account) view returns (bool)',
+  'function getSubscription(address account) view returns (uint256 deposited, uint256 expiresAt, bool isActive, uint256 remainingSeconds)',
+  'function monthlyPrice() view returns (uint256)',
+  'function withdrawEarnings()',
+  'function pendingCreatorEarnings() view returns (uint256)',
+];
+
+const FACTORY_ABI = [
+  'function checkAccess(address creatorAddress, address fan) view returns (bool hasAccess, string via)',
+  'function resolveUsername(string username) view returns (address creator, address nft, address sub)',
+  'function launchCreator(string username, string metadataURI, bool enableNFT, string nftName, string nftSymbol, uint256 nftMintPrice, uint256 nftMaxSupply, string nftBaseURI, bool enableSub, uint256 monthlyPrice, address customStablecoin) returns (address nftContract, address subContract)',
+  'function creatorProfiles(address) view returns (address creatorAddress, address nftContract, address subscriptionContract, string username, string metadataURI, uint256 registeredAt, bool isActive)',
+  'function isRegistered(address) view returns (bool)',
+];
+
+const ERC20_ABI = [
+  'function approve(address spender, uint256 amount) returns (bool)',
+  'function allowance(address owner, address spender) view returns (uint256)',
+  'function balanceOf(address account) view returns (uint256)',
+];
+
+// ─── Contract Addresses (from env) ────────────────────────────────────────
+
+const FACTORY_ADDRESS = process.env.NEXT_PUBLIC_FACTORY_ADDRESS ?? '';
+const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC_ADDRESS ?? '';
+
+// ─── Types ─────────────────────────────────────────────────────────────────
+
+export interface AccessResult {
+  hasAccess: boolean;
+  via: 'nft' | 'subscription' | 'none';
+}
+
+export interface SubscriptionInfo {
+  deposited: bigint;
+  expiresAt: bigint;
+  isActive: boolean;
+  remainingSeconds: bigint;
+}
+
+export interface TxResult {
+  success: boolean;
+  hash?: string;
+  error?: string;
+}
+
+// ─── Hook ──────────────────────────────────────────────────────────────────
+
+export function useOnlyHold() {
+  const { address, isConnected } = useWeb3();
+  const [isLoading, setIsLoading] = useState(false);
+
+  /**
+   * Get an ethers Contract instance using the browser's injected provider.
+   */
+  const getContract = useCallback(
+    (contractAddress: string, abi: string[]) => {
+      if (typeof window === 'undefined' || !(window as any).ethereum) return null;
+      // Dynamic import to avoid SSR issues
+      const { ethers } = require('ethers');
+      const provider = new ethers.BrowserProvider((window as any).ethereum);
+      return provider.getSigner().then((signer: any) =>
+        new ethers.Contract(contractAddress, abi, signer)
+      );
+    },
+    []
+  );
+
+  const getReadContract = useCallback(
+    (contractAddress: string, abi: string[]) => {
+      if (typeof window === 'undefined' || !(window as any).ethereum) return null;
+      const { ethers } = require('ethers');
+      const provider = new ethers.BrowserProvider((window as any).ethereum);
+      return new ethers.Contract(contractAddress, abi, provider);
+    },
+    []
+  );
+
+  // ── Check Access ──────────────────────────────────────────────────────────
+
+  /**
+   * Check if the connected wallet has access to a creator's content.
+   * Calls OnlyHoldFactory.checkAccess() on-chain.
+   */
+  const checkAccess = useCallback(
+    async (creatorAddress: string): Promise<AccessResult> => {
+      if (!isConnected || !address || !FACTORY_ADDRESS) {
+        return { hasAccess: false, via: 'none' };
+      }
+      try {
+        const contract = getReadContract(FACTORY_ADDRESS, FACTORY_ABI);
+        if (!contract) return { hasAccess: false, via: 'none' };
+        const [hasAccess, via] = await contract.checkAccess(creatorAddress, address);
+        return { hasAccess, via };
+      } catch (err) {
+        console.error('checkAccess error:', err);
+        return { hasAccess: false, via: 'none' };
+      }
+    },
+    [address, isConnected, getReadContract]
+  );
+
+  // ── Resolve Username ──────────────────────────────────────────────────────
+
+  /**
+   * Resolve a creator's username to their wallet + contract addresses.
+   */
+  const resolveUsername = useCallback(
+    async (username: string) => {
+      if (!FACTORY_ADDRESS) return null;
+      try {
+        const contract = getReadContract(FACTORY_ADDRESS, FACTORY_ABI);
+        if (!contract) return null;
+        const [creator, nft, sub] = await contract.resolveUsername(username);
+        return { creator, nftContract: nft, subContract: sub };
+      } catch (err) {
+        console.error('resolveUsername error:', err);
+        return null;
+      }
+    },
+    [getReadContract]
+  );
+
+  // ── Mint NFT ──────────────────────────────────────────────────────────────
+
+  /**
+   * Mint an NFT membership from a creator's NFT contract.
+   * @param nftContractAddress  The creator's NFT contract address
+   * @param mintPrice           Price in ETH (string, e.g. "0.05")
+   */
+  const mintNFT = useCallback(
+    async (nftContractAddress: string, mintPrice: string): Promise<TxResult> => {
+      if (!isConnected) return { success: false, error: 'Wallet not connected' };
+      setIsLoading(true);
+      try {
+        const { ethers } = require('ethers');
+        const contractPromise = getContract(nftContractAddress, NFT_ABI);
+        if (!contractPromise) return { success: false, error: 'No provider' };
+        const contract = await contractPromise;
+        const tx = await contract.mint(address, '', {
+          value: ethers.parseEther(mintPrice),
+        });
+        const receipt = await tx.wait();
+        return { success: true, hash: receipt.hash };
+      } catch (err: any) {
+        return { success: false, error: err.reason ?? err.message };
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [address, isConnected, getContract]
+  );
+
+  // ── Subscribe (Stablecoin) ────────────────────────────────────────────────
+
+  /**
+   * Subscribe to a creator by depositing stablecoin.
+   * @param subContractAddress  The creator's subscription contract address
+   * @param months              Number of months to subscribe
+   * @param monthlyPrice        Monthly price in USDC base units (e.g. 10_000_000)
+   */
+  const subscribeWithStablecoin = useCallback(
+    async (
+      subContractAddress: string,
+      months: number,
+      monthlyPrice: bigint
+    ): Promise<TxResult> => {
+      if (!isConnected) return { success: false, error: 'Wallet not connected' };
+      setIsLoading(true);
+      try {
+        const { ethers } = require('ethers');
+        const amount = monthlyPrice * BigInt(months);
+
+        // Step 1: Approve USDC spending
+        const usdcPromise = getContract(USDC_ADDRESS, ERC20_ABI);
+        if (!usdcPromise) return { success: false, error: 'No provider' };
+        const usdc = await usdcPromise;
+
+        const currentAllowance = await usdc.allowance(address, subContractAddress);
+        if (currentAllowance < amount) {
+          const approveTx = await usdc.approve(subContractAddress, ethers.MaxUint256);
+          await approveTx.wait();
+        }
+
+        // Step 2: Subscribe
+        const subPromise = getContract(subContractAddress, SUB_ABI);
+        if (!subPromise) return { success: false, error: 'No provider' };
+        const sub = await subPromise;
+        const tx = await sub.subscribe(amount);
+        const receipt = await tx.wait();
+
+        return { success: true, hash: receipt.hash };
+      } catch (err: any) {
+        return { success: false, error: err.reason ?? err.message };
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [address, isConnected, getContract]
+  );
+
+  // ── Cancel Subscription ───────────────────────────────────────────────────
+
+  /**
+   * Cancel subscription and withdraw remaining balance.
+   */
+  const cancelSubscription = useCallback(
+    async (subContractAddress: string): Promise<TxResult> => {
+      if (!isConnected) return { success: false, error: 'Wallet not connected' };
+      setIsLoading(true);
+      try {
+        const subPromise = getContract(subContractAddress, SUB_ABI);
+        if (!subPromise) return { success: false, error: 'No provider' };
+        const sub = await subPromise;
+        const tx = await sub.withdrawBalance();
+        const receipt = await tx.wait();
+        return { success: true, hash: receipt.hash };
+      } catch (err: any) {
+        return { success: false, error: err.reason ?? err.message };
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [isConnected, getContract]
+  );
+
+  // ── Get Subscription Info ─────────────────────────────────────────────────
+
+  /**
+   * Fetch subscription info for the connected wallet.
+   */
+  const getSubscriptionInfo = useCallback(
+    async (subContractAddress: string): Promise<SubscriptionInfo | null> => {
+      if (!address || !subContractAddress) return null;
+      try {
+        const contract = getReadContract(subContractAddress, SUB_ABI);
+        if (!contract) return null;
+        const [deposited, expiresAt, isActive, remainingSeconds] =
+          await contract.getSubscription(address);
+        return { deposited, expiresAt, isActive, remainingSeconds };
+      } catch {
+        return null;
+      }
+    },
+    [address, getReadContract]
+  );
+
+  // ── Register Creator ──────────────────────────────────────────────────────
+
+  /**
+   * Register as a creator via the factory contract.
+   */
+  const registerCreator = useCallback(
+    async (params: {
+      username: string;
+      metadataURI: string;
+      enableNFT: boolean;
+      nftName: string;
+      nftSymbol: string;
+      nftMintPrice: string; // ETH string
+      nftMaxSupply: number;
+      nftBaseURI: string;
+      enableSub: boolean;
+      monthlyPrice: bigint;
+    }): Promise<TxResult & { nftContract?: string; subContract?: string }> => {
+      if (!isConnected) return { success: false, error: 'Wallet not connected' };
+      setIsLoading(true);
+      try {
+        const { ethers } = require('ethers');
+        const factoryPromise = getContract(FACTORY_ADDRESS, FACTORY_ABI);
+        if (!factoryPromise) return { success: false, error: 'No provider' };
+        const factory = await factoryPromise;
+
+        const tx = await factory.launchCreator(
+          params.username,
+          params.metadataURI,
+          params.enableNFT,
+          params.nftName,
+          params.nftSymbol,
+          ethers.parseEther(params.nftMintPrice),
+          params.nftMaxSupply,
+          params.nftBaseURI,
+          params.enableSub,
+          params.monthlyPrice,
+          ethers.ZeroAddress // use platform default stablecoin
+        );
+
+        const receipt = await tx.wait();
+        // Parse event from receipt
+        const iface = new ethers.Interface(FACTORY_ABI);
+        const event = receipt.logs
+          .map((log: any) => {
+            try { return iface.parseLog(log); } catch { return null; }
+          })
+          .find((e: any) => e?.name === 'CreatorLaunched');
+
+        return {
+          success: true,
+          hash: receipt.hash,
+          nftContract: event?.args?.nftContract,
+          subContract: event?.args?.subscriptionContract,
+        };
+      } catch (err: any) {
+        return { success: false, error: err.reason ?? err.message };
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [isConnected, getContract]
+  );
+
+  return {
+    isLoading,
+    checkAccess,
+    resolveUsername,
+    mintNFT,
+    subscribeWithStablecoin,
+    cancelSubscription,
+    getSubscriptionInfo,
+    registerCreator,
+    FACTORY_ADDRESS,
+    USDC_ADDRESS,
+  };
+}
