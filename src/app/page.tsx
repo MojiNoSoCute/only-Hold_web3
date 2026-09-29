@@ -123,7 +123,7 @@ export default function HomePage() {
                 ))}
               </ul>
               <div className="mt-4 pt-4 border-t border-white/5">
-                <span className="text-purple-400 font-mono text-sm">เริ่มต้นที่ 0.03 ETH</span>
+                <span className="text-purple-400 font-mono text-sm">เริ่มต้นที่ 0.01 ETH</span>
               </div>
             </div>
 
@@ -145,7 +145,7 @@ export default function HomePage() {
                 ))}
               </ul>
               <div className="mt-4 pt-4 border-t border-white/5">
-                <span className="text-green-400 font-mono text-sm">เริ่มต้นที่ $8 USDC/เดือน</span>
+                <span className="text-green-400 font-mono text-sm">เริ่มต้นที่ $1 USDC/เดือน</span>
               </div>
             </div>
           </div>
