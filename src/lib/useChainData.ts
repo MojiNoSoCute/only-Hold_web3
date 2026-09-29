@@ -189,17 +189,24 @@ export function useChainData(): ChainData {
 
   useEffect(() => {
     pullSync();
-    const interval = setInterval(() => pullSync(), 10000);
-    const focusHandler = () => pullSync();
-    window.addEventListener('focus', focusHandler);
+    const interval = setInterval(() => pullSync(), 2000);
+    const syncHandler = () => pullSync();
+    window.addEventListener('focus', syncHandler);
+    window.addEventListener('visibilitychange', syncHandler);
+    window.addEventListener('storage', syncHandler);
     return () => {
       clearInterval(interval);
-      window.removeEventListener('focus', focusHandler);
+      window.removeEventListener('focus', syncHandler);
+      window.removeEventListener('visibilitychange', syncHandler);
+      window.removeEventListener('storage', syncHandler);
     };
   }, []);
 
   useEffect(() => {
-    const handler = () => setAdminVersion(getAdminVersion());
+    const handler = () => {
+      _cachedCreators = null;
+      setAdminVersion(getAdminVersion());
+    };
     window.addEventListener('onlyhold-admin-update', handler);
     return () => window.removeEventListener('onlyhold-admin-update', handler);
   }, []);
