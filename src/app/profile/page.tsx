@@ -6,6 +6,8 @@ import Link from 'next/link';
 import WalletModal from '@/components/WalletModal';
 import { useState, useEffect } from 'react';
 
+import { getAdminCreators } from '@/lib/adminData';
+
 const FACTORY_ADDRESS = process.env.NEXT_PUBLIC_FACTORY_ADDRESS ?? '';
 const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC_ADDRESS ?? '';
 
@@ -15,6 +17,8 @@ const FACTORY_ABI = [
 ];
 
 const NFT_ABI = [
+  'function name() view returns (string)',
+  'function symbol() view returns (string)',
   'function balanceOf(address owner) view returns (uint256)',
   'function tokenOfOwnerByIndex(address owner, uint256 index) view returns (uint256)',
   'function mintPrice() view returns (uint256)',
@@ -32,9 +36,15 @@ const ERC20_ABI = [
 
 interface NFTItem {
   creatorAddress: string;
+  creatorName: string;
   creatorUsername: string;
+  creatorAvatar: string;
+  creatorCover: string;
   nftContract: string;
+  nftName: string;
+  nftSymbol: string;
   tokenCount: number;
+  firstTokenId?: string;
   mintPrice: string;
 }
 
@@ -99,11 +109,28 @@ export default function ProfilePage() {
                 const bal = await nft.balanceOf(address);
                 if (Number(bal) > 0) {
                   const price = await nft.mintPrice().catch(() => 0n);
+                  const nftName = await nft.name().catch(() => `${username} Pass`);
+                  const nftSymbol = await nft.symbol().catch(() => username.toUpperCase().slice(0, 5));
+                  let firstTokenId = '';
+                  try {
+                    const tid = await nft.tokenOfOwnerByIndex(address, 0);
+                    firstTokenId = String(tid);
+                  } catch {}
+
+                  const localList = getAdminCreators();
+                  const custom = localList.find((c) => c.username?.toLowerCase() === username.toLowerCase() || c.address?.toLowerCase() === creatorAddr.toLowerCase());
+
                   nftResults.push({
                     creatorAddress: creatorAddr,
+                    creatorName: custom?.name || username.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
                     creatorUsername: username,
+                    creatorAvatar: custom?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`,
+                    creatorCover: custom?.coverImage || 'https://images.unsplash.com/photo-1635322966219-b75ed372eb01?w=1200&auto=format&fit=crop',
                     nftContract: profile.nftContract,
+                    nftName,
+                    nftSymbol,
                     tokenCount: Number(bal),
+                    firstTokenId,
                     mintPrice: ethers.formatEther(price),
                   });
                 }
@@ -267,27 +294,69 @@ export default function ProfilePage() {
           ) : (
             <>
               {nfts.map((nft) => (
-                <div key={nft.nftContract} className="bg-[#13131a] border border-white/5 rounded-2xl overflow-hidden hover:border-purple-500/30 transition-colors group">
-                  <div className="relative h-28 bg-gradient-to-br from-purple-900/40 to-pink-900/40 flex items-center justify-center">
-                    <div className="text-4xl">🎫</div>
-                    <div className="absolute top-2 right-2 bg-purple-500/20 border border-purple-500/30 text-purple-300 text-xs px-2 py-0.5 rounded-full font-mono">
-                      x{nft.tokenCount}
+                <div key={nft.nftContract} className="bg-[#13131a] border border-white/10 rounded-2xl overflow-hidden hover:border-purple-500/40 transition-all duration-300 group shadow-lg">
+                  {/* Card Cover Background */}
+                  <div className="relative h-32 bg-slate-800 overflow-hidden">
+                    <img
+                      src={nft.creatorCover}
+                      alt={nft.nftName}
+                      className="w-full h-full object-cover opacity-70 group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#13131a] via-transparent to-black/30" />
+
+                    {/* Token Count Badge */}
+                    <div className="absolute top-3 right-3 bg-purple-600/80 backdrop-blur-sm border border-purple-400/40 text-white text-xs px-2.5 py-0.5 rounded-full font-mono font-bold shadow-md">
+                      {nft.tokenCount > 1 ? `x${nft.tokenCount} NFTs` : `Token #${nft.firstTokenId || '0'}`}
+                    </div>
+
+                    {/* NFT Symbol Tag */}
+                    <div className="absolute top-3 left-3 bg-black/50 backdrop-blur-sm border border-white/20 text-purple-300 text-[10px] px-2 py-0.5 rounded-md font-mono">
+                      ${nft.nftSymbol}
                     </div>
                   </div>
-                  <div className="p-4">
-                    <p className="text-white font-medium text-sm mb-1">@{nft.creatorUsername}</p>
-                    <a href={`https://sepolia.etherscan.io/address/${nft.nftContract}`} target="_blank" rel="noopener noreferrer" className="text-white/30 text-xs font-mono hover:text-purple-400 transition-colors block truncate mb-3">
-                      {nft.nftContract.slice(0, 12)}...
+
+                  {/* Body Info */}
+                  <div className="p-4 pt-0 relative">
+                    <div className="-mt-7 mb-3 flex items-end justify-between">
+                      <div className="w-12 h-12 rounded-xl border-2 border-[#13131a] bg-purple-600 overflow-hidden shadow-md flex-shrink-0">
+                        <img
+                          src={nft.creatorAvatar}
+                          alt={nft.creatorName}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${nft.creatorUsername}`;
+                          }}
+                        />
+                      </div>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 font-medium">
+                        🎫 สมาชิกตลอดชีพ
+                      </span>
+                    </div>
+
+                    <h4 className="font-bold text-white text-sm line-clamp-1">{nft.nftName}</h4>
+                    <p className="text-white/40 text-xs mb-3">โดย {nft.creatorName} (@{nft.creatorUsername})</p>
+
+                    <a
+                      href={`https://sepolia.etherscan.io/address/${nft.nftContract}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-white/30 text-[11px] font-mono hover:text-purple-400 transition-colors block truncate mb-4"
+                    >
+                      Contract: {nft.nftContract.slice(0, 10)}...{nft.nftContract.slice(-6)} ↗
                     </a>
+
                     <div className="flex gap-2">
-                      <Link href={`/creator/${nft.creatorUsername}`} className="flex-1 py-2 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs text-center hover:bg-purple-500/20 transition-colors">
-                        ดูคอนเทนต์
+                      <Link
+                        href={`/creator/${nft.creatorUsername}`}
+                        className="flex-1 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-bold text-center hover:opacity-90 transition-opacity shadow-md"
+                      >
+                        ดูคอนเทนต์พิเศษ →
                       </Link>
                     </div>
                   </div>
                 </div>
               ))}
-              <Link href="/explore" className="border-2 border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center p-8 text-white/20 hover:border-purple-500/30 hover:text-purple-400 transition-all min-h-[180px]">
+              <Link href="/explore" className="border-2 border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center p-8 text-white/20 hover:border-purple-500/30 hover:text-purple-400 transition-all min-h-[200px]">
                 <span className="text-3xl mb-2">+</span>
                 <p className="text-sm">ค้นหาครีเอเตอร์อื่น</p>
               </Link>
