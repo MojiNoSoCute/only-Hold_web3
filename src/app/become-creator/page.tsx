@@ -107,19 +107,20 @@ export default function BecomeCreatorPage() {
       setSubContractAddress(result.subContract ?? '');
       setLaunched(true);
     } else {
-      // แปล error จาก contract ให้อ่านง่าย
       const raw = result.error ?? '';
-      if (raw.includes('AlreadyRegistered') || raw.includes('require(false)')) {
+      if (raw === 'ACTION_REJECTED') {
+        setError('ยกเลิก Transaction');
+      } else if (raw.includes('AlreadyRegistered') || raw.includes('ลงทะเบียน')) {
         setError('กระเป๋านี้ลงทะเบียนเป็นครีเอเตอร์ไปแล้ว ไปที่ Dashboard เพื่อจัดการโปรไฟล์');
       } else if (raw.includes('UsernameTaken')) {
         setError('ชื่อผู้ใช้นี้ถูกใช้ไปแล้ว กรุณาเลือกชื่อใหม่');
       } else if (raw.includes('InvalidUsername')) {
-        setError('ชื่อผู้ใช้ไม่ถูกต้อง ใช้ได้เฉพาะตัวอักษร a-z, 0-9 และ _ เท่านั้น');
+        setError('ชื่อผู้ใช้ไม่ถูกต้อง ใช้ได้เฉพาะตัวอักษร a-z, 0-9 และ _ เท่านั้น (สูงสุด 30 ตัว)');
       } else if (raw.includes('MustEnableAtLeastOne')) {
         setError('ต้องเลือกอย่างน้อย 1 ระบบ (NFT หรือ Stablecoin)');
-      } else if (raw.includes('user rejected') || raw.includes('ACTION_REJECTED')) {
-        setError('ยกเลิก Transaction');
-      } else if (raw.includes('insufficient funds') || raw.includes('CALL_EXCEPTION') || raw.includes('estimateGas')) {
+      } else if (raw.includes('Blacklisted')) {
+        setError('Address นี้ถูก Blacklist ไม่สามารถสมัครได้');
+      } else if (raw.includes('insufficient funds') || raw.includes('CALL_EXCEPTION') || raw.includes('estimateGas') || raw.includes('INSUFFICIENT')) {
         setError('ETH ไม่เพียงพอสำหรับค่า Gas — ไปรับ Sepolia ETH ฟรีที่ sepoliafaucet.com ก่อน');
       } else {
         setError(raw || 'เกิดข้อผิดพลาด กรุณาลองใหม่');

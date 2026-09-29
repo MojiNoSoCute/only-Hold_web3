@@ -73,6 +73,40 @@ const ERC20_ABI = [
 const FACTORY_ADDRESS = process.env.NEXT_PUBLIC_FACTORY_ADDRESS ?? '';
 const USDC_ADDRESS = process.env.NEXT_PUBLIC_USDC_ADDRESS ?? '';
 
+// ─── Error parser (ethers v6) ──────────────────────────────────────────────
+
+function parseContractError(err: any): string {
+  // User rejected
+  if (err?.code === 4001 || err?.code === 'ACTION_REJECTED' ||
+      err?.message?.includes('user rejected') || err?.message?.includes('User denied')) {
+    return 'ACTION_REJECTED';
+  }
+  // ethers v6: err.revert.name is the custom error name
+  if (err?.revert?.name) return err.revert.name;
+  // err.reason (older ethers)
+  if (err?.reason) return err.reason;
+  // parse from data field
+  if (err?.data) {
+    const hex = typeof err.data === 'string' ? err.data : err.data?.data;
+    if (hex) {
+      if (hex.startsWith('0x08c379a0')) return 'require: ' + decodeRevertString(hex);
+      if (hex.startsWith('0x4e5cf2a0')) return 'AlreadyRegistered';
+      if (hex.startsWith('0x')) return 'ContractError';
+    }
+  }
+  // fallback
+  return err?.shortMessage ?? err?.message ?? 'เกิดข้อผิดพลาด';
+}
+
+function decodeRevertString(hex: string): string {
+  try {
+    const { ethers } = require('ethers');
+    return ethers.AbiCoder.defaultAbiCoder().decode(['string'], '0x' + hex.slice(10))[0];
+  } catch {
+    return hex;
+  }
+}
+
 // ─── Types ─────────────────────────────────────────────────────────────────
 
 export interface AccessResult {
@@ -192,7 +226,7 @@ export function useOnlyHold() {
         const receipt = await tx.wait();
         return { success: true, hash: receipt.hash };
       } catch (err: any) {
-        return { success: false, error: err.reason ?? err.message };
+        return { success: false, error: parseContractError(err) };
       } finally {
         setIsLoading(false);
       }
@@ -240,7 +274,7 @@ export function useOnlyHold() {
 
         return { success: true, hash: receipt.hash };
       } catch (err: any) {
-        return { success: false, error: err.reason ?? err.message };
+        return { success: false, error: parseContractError(err) };
       } finally {
         setIsLoading(false);
       }
@@ -265,7 +299,7 @@ export function useOnlyHold() {
         const receipt = await tx.wait();
         return { success: true, hash: receipt.hash };
       } catch (err: any) {
-        return { success: false, error: err.reason ?? err.message };
+        return { success: false, error: parseContractError(err) };
       } finally {
         setIsLoading(false);
       }
@@ -350,7 +384,7 @@ export function useOnlyHold() {
           subContract: event?.args?.subscriptionContract,
         };
       } catch (err: any) {
-        return { success: false, error: err.reason ?? err.message };
+        return { success: false, error: parseContractError(err) };
       } finally {
         setIsLoading(false);
       }
