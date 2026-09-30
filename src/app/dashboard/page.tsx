@@ -43,6 +43,7 @@ export default function DashboardPage() {
   // On-chain state
   const [profile, setProfile] = useState<CreatorProfile | null>(null);
   const [pendingEarnings, setPendingEarnings] = useState(0n);
+  const [nftStats, setNftStats] = useState<{ totalMinted: number; mintPriceEth: string }>({ totalMinted: 0, mintPriceEth: '0' });
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
   const [depositing, setDepositing] = useState(false);
@@ -148,6 +149,21 @@ export default function DashboardPage() {
           provider
         );
         sub.pendingCreatorEarnings().then(setPendingEarnings).catch(console.error);
+      }
+
+      // Fetch NFT mint stats
+      if (p.nftContract && p.nftContract !== ethers.ZeroAddress) {
+        const nft = new ethers.Contract(
+          p.nftContract,
+          ['function totalMinted() view returns (uint256)', 'function mintPrice() view returns (uint256)'],
+          provider
+        );
+        Promise.all([
+          nft.totalMinted().catch(() => 0n),
+          nft.mintPrice().catch(() => 0n),
+        ]).then(([total, price]) => {
+          setNftStats({ totalMinted: Number(total), mintPriceEth: ethers.formatEther(price) });
+        }).catch(console.error);
       }
     }).catch(console.error).finally(() => setLoadingProfile(false));
   }, [isConnected, address, FACTORY_ADDRESS, creators]);
@@ -443,6 +459,23 @@ export default function DashboardPage() {
       {/* ── TAB 1: OVERVIEW ────────────────────────────────────────────── */}
       {activeTab === 'overview' && (
         <div className="space-y-8">
+          {!profile && (
+            <div className="p-6 rounded-2xl bg-gradient-to-r from-purple-900/40 via-pink-900/30 to-purple-900/40 border border-purple-500/30 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
+              <div>
+                <h3 className="font-bold text-white text-lg mb-1">🚀 เปิดตัวเป็นครีเอเตอร์บน Sepolia Testnet</h3>
+                <p className="text-white/60 text-sm">
+                  สร้างสัญญา Smart Contract (NFT &amp; Stablecoin Subscription) บน Sepolia เพื่อเริ่มรับรายได้และถอนเหรียญเข้ากระเป๋าของคุณได้จริง!
+                </p>
+              </div>
+              <Link
+                href="/become-creator"
+                className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold text-sm hover:opacity-90 transition-all shadow-lg flex-shrink-0"
+              >
+                เปิดตัวสัญญา Sepolia เลย →
+              </Link>
+            </div>
+          )}
+
           <div className="grid lg:grid-cols-3 gap-6">
 
             {/* Earnings Card */}
@@ -506,7 +539,14 @@ export default function DashboardPage() {
               <div className="space-y-4 text-xs">
                 {profile?.nftContract && profile.nftContract !== '0x0000000000000000000000000000000000000000' && (
                   <div>
-                    <p className="text-purple-400 font-medium mb-1">🖼️ NFT Contract</p>
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-purple-400 font-medium">🖼️ NFT Contract</p>
+                      {nftStats.totalMinted > 0 && (
+                        <span className="text-[10px] text-purple-300 bg-purple-500/20 px-1.5 py-0.5 rounded">
+                          ขายแล้ว {nftStats.totalMinted} ชิ้น ({(nftStats.totalMinted * parseFloat(nftStats.mintPriceEth) * 0.95).toFixed(3)} ETH)
+                        </span>
+                      )}
+                    </div>
                     <a
                       href={`https://sepolia.etherscan.io/address/${profile.nftContract}`}
                       target="_blank"
