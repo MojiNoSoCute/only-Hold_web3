@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { Creator, Content } from '@/lib/types';
+import fs from 'fs';
+import path from 'path';
 
 export interface CommentItem {
   id: string;
@@ -24,6 +26,45 @@ const CLOUD_STORE_URL = 'https://api.restful-api.dev/objects/ff808181a09d98f701a
 const globalStore = globalThis as unknown as {
   _onlyhold_sync_store?: SyncStore;
 };
+
+function getDbFilePath(): string {
+  try {
+    const dir = path.join(process.cwd(), 'data');
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    return path.join(dir, 'db.json');
+  } catch {
+    return '/tmp/onlyhold_db.json';
+  }
+}
+
+function readFromDisk(): SyncStore | null {
+  try {
+    const filePath = getDbFilePath();
+    if (fs.existsSync(filePath)) {
+      const raw = fs.readFileSync(filePath, 'utf-8');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && Array.isArray(parsed.creators)) {
+          return parsed as SyncStore;
+        }
+      }
+    }
+  } catch {}
+  return null;
+}
+
+function writeToDisk(store: SyncStore): void {
+  try {
+    const filePath = getDbFilePath();
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(filePath, JSON.stringify(store, null, 2), 'utf-8');
+  } catch {}
+}
 
 // Initial default creators and content
 const DEFAULT_CREATORS: Creator[] = [
@@ -115,6 +156,13 @@ async function fetchFromCloud(): Promise<SyncStore | null> {
 }
 
 async function saveToCloud(store: SyncStore): Promise<void> {
+  // 1. Write to persistent disk database file
+  writeToDisk(store);
+
+  // 2. Update memory store
+  globalStore._onlyhold_sync_store = store;
+
+  // 3. Write to online REST API
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 2500);
@@ -129,36 +177,22 @@ async function saveToCloud(store: SyncStore): Promise<void> {
 }
 
 async function getStore(): Promise<SyncStore> {
-  if (globalStore._onlyhold_sync_store) {
-    globalStore._onlyhold_sync_store.content = globalStore._onlyhold_sync_store.content.filter(
-      (c: any) =>
-        c &&
-        c.id &&
-        !MOCK_POST_IDS.has(c.id) &&
-        c.title &&
-        (c.creatorName || c.creatorUsername || c.creatorId)
-    );
-    globalStore._onlyhold_sync_store.creators = globalStore._onlyhold_sync_store.creators.filter(
-      (c: any) => c && c.id && c.id.trim() !== '' && c.username && c.username.trim() !== ''
-    );
-    return globalStore._onlyhold_sync_store;
+  // 1. Memory store
+  let store: SyncStore | null = globalStore._onlyhold_sync_store || null;
+
+  // 2. Persistent disk file database
+  if (!store) {
+    store = readFromDisk();
   }
-  const cloudData = await fetchFromCloud();
-  if (cloudData && Array.isArray(cloudData.creators) && Array.isArray(cloudData.content)) {
-    cloudData.content = cloudData.content.filter(
-      (c: any) =>
-        c &&
-        c.id &&
-        !MOCK_POST_IDS.has(c.id) &&
-        c.title &&
-        (c.creatorName || c.creatorUsername || c.creatorId)
-    );
-    cloudData.creators = cloudData.creators.filter(
-      (c: any) => c && c.id && c.id.trim() !== '' && c.username && c.username.trim() !== ''
-    );
-    globalStore._onlyhold_sync_store = cloudData;
-  } else {
-    globalStore._onlyhold_sync_store = {
+
+  // 3. Cloud REST API
+  if (!store) {
+    store = await fetchFromCloud();
+  }
+
+  // 4. Fallback default initial dataset
+  if (!store || !Array.isArray(store.creators)) {
+    store = {
       creators: [...DEFAULT_CREATORS],
       content: [],
       deletedContentIds: [],
@@ -167,7 +201,39 @@ async function getStore(): Promise<SyncStore> {
       version: Date.now(),
     };
   }
-  return globalStore._onlyhold_sync_store;
+
+  // Ensure default creators exist if not deleted
+  const deletedCreatorSet = new Set(store.deletedCreatorIds || []);
+  const existingKeys = new Set(
+    (store.creators || [])
+      .map((c) => (c && (c.username || c.id) ? (c.username || c.id).toLowerCase() : ''))
+      .filter(Boolean)
+  );
+
+  DEFAULT_CREATORS.forEach((c) => {
+    const key = (c.username || c.id || '').toLowerCase();
+    if (key && !existingKeys.has(key) && !deletedCreatorSet.has(key) && !deletedCreatorSet.has(c.id)) {
+      store!.creators.push(c);
+      existingKeys.add(key);
+    }
+  });
+
+  // Filter out corrupted/invalid mock items
+  store.content = (store.content || []).filter(
+    (c: any) =>
+      c &&
+      c.id &&
+      !MOCK_POST_IDS.has(c.id) &&
+      c.title &&
+      (c.creatorName || c.creatorUsername || c.creatorId)
+  );
+
+  store.creators = (store.creators || []).filter(
+    (c: any) => c && c.id && c.id.trim() !== '' && c.username && c.username.trim() !== ''
+  );
+
+  globalStore._onlyhold_sync_store = store;
+  return store;
 }
 
 export async function GET() {
