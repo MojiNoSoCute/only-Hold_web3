@@ -1,0 +1,70 @@
+{
+  "creators": [
+    {
+      "id": "asdf",
+      "address": "0xfd76561ab9c82e1dc97cb35125ac0a2a445ded68",
+      "name": "Asdf",
+      "username": "asdf",
+      "avatar": "https://i.postimg.cc/8PSCdMVF/Chat-GPT-Image-Sep-30-2026-04-25-25-AM.png",
+      "coverImage": "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1200&auto=format&fit=crop",
+      "bio": "คอนเทนต์ครีเอเตอร์และบล็อกเกอร์",
+      "category": "lifestyle",
+      "totalSubscribers": 1,
+      "totalEarnings": "0",
+      "isVerified": false,
+      "contentCount": 1,
+      "joinedAt": "2026-09-27",
+      "nftContractAddress": "0x5F5c14C017E3bDC6a480D20e385d2Afa37Baf536"
+    },
+    {
+      "id": "moji",
+      "address": "0x0000000000000000000000000000000000000003",
+      "name": "Moji",
+      "username": "moji",
+      "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop",
+      "coverImage": "https://images.unsplash.com/photo-1635322966219-b75ed372eb01?w=1200&auto=format&fit=crop",
+      "bio": "ดิจิทัลอาร์ทติสและดีไซน์เนอร์ Web3",
+      "category": "art",
+      "totalSubscribers": 1,
+      "totalEarnings": "0",
+      "isVerified": false,
+      "contentCount": 1,
+      "joinedAt": "2026-09-27"
+    },
+    {
+      "id": "yumi",
+      "address": "0x0000000000000000000000000000000000000001",
+      "name": "Yumi",
+      "username": "yumi",
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop",
+      "coverImage": "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1200&auto=format&fit=crop",
+      "bio": "ครีเอเตอร์สายเกมและไลฟ์สไตล์ สตรีมคุยกับแฟนคลับยามดึก ✨",
+      "category": "gaming",
+      "totalSubscribers": 1,
+      "totalEarnings": "0",
+      "isVerified": true,
+      "contentCount": 1,
+      "joinedAt": "2026-09-25"
+    },
+    {
+      "id": "hana",
+      "address": "0x0000000000000000000000000000000000000002",
+      "name": "Hana",
+      "username": "hana",
+      "avatar": "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=500&auto=format&fit=crop",
+      "coverImage": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=1200&auto=format&fit=crop",
+      "bio": "Hello I am new here! Pls support me ✨",
+      "category": "lifestyle",
+      "totalSubscribers": 1,
+      "totalEarnings": "0",
+      "isVerified": false,
+      "contentCount": 1,
+      "joinedAt": "2026-09-26"
+    }
+  ],
+  "content": [],
+  "deletedContentIds": [],
+  "deletedCreatorIds": [],
+  "comments": {},
+  "version": 1790730477501
+}
