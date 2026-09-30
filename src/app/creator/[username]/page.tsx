@@ -133,11 +133,15 @@ export default function CreatorPage({ params }: CreatorPageProps) {
     if (match) {
       setCreator((prev) => {
         if (!prev) return null;
+        const isCustom = (url?: string) => url && (url.startsWith('data:') || (!url.includes('images.unsplash.com') && !url.includes('api.dicebear.com')));
+        const avatar = isCustom(match.avatar) ? match.avatar : (isCustom(prev.avatar) ? prev.avatar : match.avatar);
+        const coverImage = isCustom(match.coverImage) ? match.coverImage : (isCustom(prev.coverImage) ? prev.coverImage : match.coverImage);
         return {
           ...prev,
+          ...match,
           name: match.name || prev.name,
-          avatar: match.avatar || prev.avatar,
-          coverImage: match.coverImage || prev.coverImage,
+          avatar,
+          coverImage,
           bio: match.bio || prev.bio,
           category: match.category || prev.category,
         };

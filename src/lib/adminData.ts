@@ -405,13 +405,20 @@ export function applySyncedStore(store: any): void {
         if (key) map.set(key, c);
       });
 
-      // 2. Apply server creators ON TOP so server updates override local cache
+      // 2. Apply server creators ON TOP so server updates override local cache while preserving custom uploaded images
       store.creators.forEach((c: Creator) => {
         if (!c) return;
         const key = (c.username || c.id || '').toLowerCase();
         if (key) {
           const local = map.get(key);
-          map.set(key, local ? { ...local, ...c } : c);
+          if (local) {
+            const isCustom = (url?: string) => url && (url.startsWith('data:') || (!url.includes('images.unsplash.com') && !url.includes('api.dicebear.com')));
+            const avatar = isCustom(c.avatar) ? c.avatar : (isCustom(local.avatar) ? local.avatar : (c.avatar || local.avatar));
+            const coverImage = isCustom(c.coverImage) ? c.coverImage : (isCustom(local.coverImage) ? local.coverImage : (c.coverImage || local.coverImage));
+            map.set(key, { ...local, ...c, avatar, coverImage });
+          } else {
+            map.set(key, c);
+          }
         }
       });
 

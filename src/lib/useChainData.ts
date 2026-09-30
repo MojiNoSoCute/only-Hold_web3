@@ -253,14 +253,20 @@ export function useChainData(): ChainData {
     const enrichedChain = chainCreators.map((c) => {
       const uKey = c && c.username ? c.username.toLowerCase() : '';
       const aKey = c && c.address ? c.address.toLowerCase() : '';
-      const custom = (uKey ? adminMap.get(uKey) : null) || (aKey ? adminMap.get(aKey) : null);
+      const iKey = c && c.id ? c.id.toLowerCase() : '';
+      const custom = (uKey ? adminMap.get(uKey) : null) ||
+                     (aKey ? adminMap.get(aKey) : null) ||
+                     (iKey ? adminMap.get(iKey) : null);
+
       const base = custom
         ? {
             ...c,
+            ...custom,
             name: custom.name || c.name,
             avatar: custom.avatar || c.avatar,
             coverImage: custom.coverImage || c.coverImage,
             bio: custom.bio || c.bio,
+            nftContractAddress: c.nftContractAddress || custom.nftContractAddress,
           }
         : c;
 

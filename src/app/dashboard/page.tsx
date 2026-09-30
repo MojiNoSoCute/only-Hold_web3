@@ -60,6 +60,7 @@ export default function DashboardPage() {
     coverImage: '',
     bio: '',
   });
+  const [profileFormLoaded, setProfileFormLoaded] = useState(false);
   const [profileSavedMsg, setProfileSavedMsg] = useState('');
 
   // Create Post Form
@@ -117,28 +118,41 @@ export default function DashboardPage() {
         isActive: p.isActive,
       });
 
-      // Find current creator profile in chain/local data to fill edit form
-      const existing = creators.find(
+      // Find current creator profile in admin database first, then chain data
+      const adminList = getAdminCreators();
+      const existingAdmin = adminList.find(
         (c) =>
           c &&
           ((c.username && p.username && c.username.toLowerCase() === p.username.toLowerCase()) ||
             (c.address && address && c.address.toLowerCase() === address.toLowerCase()) ||
             (c.id && address && c.id.toLowerCase() === address.toLowerCase()))
       );
-      if (existing) {
-        setProfileForm({
-          name: existing.name || p.username,
-          avatar: existing.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.username}`,
-          coverImage: existing.coverImage || PRESET_COVERS[0],
-          bio: existing.bio || `ครีเอเตอร์บน OnlyHold Sepolia Testnet`,
-        });
-      } else {
-        setProfileForm({
-          name: p.username,
-          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.username}`,
-          coverImage: PRESET_COVERS[0],
-          bio: `ครีเอเตอร์บน OnlyHold Sepolia Testnet`,
-        });
+      const existingChain = creators.find(
+        (c) =>
+          c &&
+          ((c.username && p.username && c.username.toLowerCase() === p.username.toLowerCase()) ||
+            (c.address && address && c.address.toLowerCase() === address.toLowerCase()) ||
+            (c.id && address && c.id.toLowerCase() === address.toLowerCase()))
+      );
+      const existing = existingAdmin || existingChain;
+
+      if (!profileFormLoaded || !profileForm.avatar) {
+        if (existing) {
+          setProfileForm({
+            name: existing.name || p.username,
+            avatar: existing.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.username}`,
+            coverImage: existing.coverImage || PRESET_COVERS[0],
+            bio: existing.bio || `ครีเอเตอร์บน OnlyHold Sepolia Testnet`,
+          });
+        } else {
+          setProfileForm({
+            name: p.username,
+            avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.username}`,
+            coverImage: PRESET_COVERS[0],
+            bio: `ครีเอเตอร์บน OnlyHold Sepolia Testnet`,
+          });
+        }
+        setProfileFormLoaded(true);
       }
 
       // Fetch pending earnings from subscription contract
@@ -277,13 +291,23 @@ export default function DashboardPage() {
 
     const existing = existingIndex >= 0 ? currentList[existingIndex] : null;
 
+    const isCustomUrl = (url?: string) => url && (url.startsWith('data:') || (!url.includes('images.unsplash.com') && !url.includes('api.dicebear.com')));
+
+    const finalAvatar = profileForm.avatar
+      ? (isCustomUrl(profileForm.avatar) ? profileForm.avatar : (isCustomUrl(existing?.avatar) ? existing!.avatar : profileForm.avatar))
+      : (existing?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${targetUsername}`);
+
+    const finalCover = profileForm.coverImage
+      ? (isCustomUrl(profileForm.coverImage) ? profileForm.coverImage : (isCustomUrl(existing?.coverImage) ? existing!.coverImage : profileForm.coverImage))
+      : (existing?.coverImage || PRESET_COVERS[0]);
+
     const updatedCreatorObj: Creator = {
       id: existing?.id || address.toLowerCase(),
       address: address,
       name: profileForm.name || existing?.name || targetUsername,
       username: existing?.username || targetUsername,
-      avatar: profileForm.avatar || existing?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${targetUsername}`,
-      coverImage: profileForm.coverImage || existing?.coverImage || PRESET_COVERS[0],
+      avatar: finalAvatar,
+      coverImage: finalCover,
       bio: profileForm.bio ?? existing?.bio ?? 'ครีเอเตอร์บน OnlyHold',
       category: existing?.category || 'art',
       totalSubscribers: existing?.totalSubscribers || 0,
