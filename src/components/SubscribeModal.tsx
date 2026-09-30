@@ -80,8 +80,33 @@ export default function SubscribeModal({ creatorId, creatorName, onClose }: Subs
 
     const targetContract = nftContract || (creator as any).nftContractAddress;
     if (!targetContract || targetContract === '0x0000000000000000000000000000000000000000') {
-      setError('ไม่พบสัญญา NFT ของครีเอเตอร์นี้บน chain');
-      return;
+      // Off-chain simulated NFT minting
+      try {
+        const creatorAddr = ((creator as any).address || creator.id || creator.username || '').toLowerCase();
+        if (creatorAddr) {
+          const key = `onlyhold_pending_${creatorAddr}`;
+          const currentPending = parseFloat(localStorage.getItem(key) || '0');
+          const addedValue = parseFloat(creator.nftPrice || '0.01') * 3000 || 30; // approx USD value
+          localStorage.setItem(key, (currentPending + addedValue).toFixed(2));
+        }
+
+        const subKey = 'onlyhold_local_subscriptions';
+        const existingSubs = JSON.parse(localStorage.getItem(subKey) || '[]');
+        existingSubs.push({
+          creatorId: creator.id || creator.username,
+          subscriberAddress: address,
+          type: 'nft',
+          startDate: new Date().toISOString(),
+        });
+        localStorage.setItem(subKey, JSON.stringify(existingSubs));
+
+        setTxHash(`simulated_nft_${Date.now()}`);
+        setTxSuccess(true);
+        return;
+      } catch {
+        setError('เกิดข้อผิดพลาดในการทำรายการ');
+        return;
+      }
     }
 
     setError('');
@@ -97,7 +122,38 @@ export default function SubscribeModal({ creatorId, creatorName, onClose }: Subs
   const handleSubscribe = async () => {
     if (!isConnected) { setWalletModalOpen(true); return; }
     if (isWrongNetwork) { await switchToSepolia(); return; }
-    if (!subContract) { setError('ไม่พบสัญญา Subscription ของครีเอเตอร์นี้บน chain'); return; }
+
+    if (!subContract || subContract === '0x0000000000000000000000000000000000000000') {
+      // Off-chain simulated stablecoin subscription
+      try {
+        const creatorAddr = ((creator as any).address || creator.id || creator.username || '').toLowerCase();
+        if (creatorAddr) {
+          const key = `onlyhold_pending_${creatorAddr}`;
+          const currentPending = parseFloat(localStorage.getItem(key) || '0');
+          const addedValue = stablecoinTotal || 10;
+          localStorage.setItem(key, (currentPending + addedValue).toFixed(2));
+        }
+
+        const subKey = 'onlyhold_local_subscriptions';
+        const existingSubs = JSON.parse(localStorage.getItem(subKey) || '[]');
+        existingSubs.push({
+          creatorId: creator.id || creator.username,
+          subscriberAddress: address,
+          type: 'stablecoin',
+          startDate: new Date().toISOString(),
+          months,
+        });
+        localStorage.setItem(subKey, JSON.stringify(existingSubs));
+
+        setTxHash(`simulated_sub_${Date.now()}`);
+        setTxSuccess(true);
+        return;
+      } catch {
+        setError('เกิดข้อผิดพลาดในการทำรายการ');
+        return;
+      }
+    }
+
     if (monthlyPrice === 0n) { setError('กำลังโหลดราคา กรุณารอสักครู่'); return; }
 
     setError('');

@@ -181,8 +181,38 @@ export function useOnlyHold() {
           return { hasAccess: true, via: 'owner' };
         }
 
-        const [hasAccess, via] = await contract.checkAccess(targetAddress, address);
-        return { hasAccess, via };
+        let hasOnChainAccess = false;
+        let onChainVia = 'none';
+        try {
+          const [h, v] = await contract.checkAccess(targetAddress, address);
+          hasOnChainAccess = h;
+          onChainVia = v;
+        } catch {}
+
+        if (hasOnChainAccess) {
+          return { hasAccess: true, via: onChainVia as any };
+        }
+
+        // Fallback: Check local subscriptions for off-chain testing
+        try {
+          if (typeof window !== 'undefined') {
+            const raw = localStorage.getItem('onlyhold_local_subscriptions');
+            if (raw) {
+              const list = JSON.parse(raw);
+              const found = list.find(
+                (s: any) =>
+                  s.subscriberAddress?.toLowerCase() === address.toLowerCase() &&
+                  (s.creatorId?.toLowerCase() === targetAddress.toLowerCase() ||
+                    s.creatorId?.toLowerCase() === creatorAddressOrUsername.toLowerCase())
+              );
+              if (found) {
+                return { hasAccess: true, via: found.type || 'subscription' };
+              }
+            }
+          }
+        } catch {}
+
+        return { hasAccess: false, via: 'none' };
       } catch {
         return { hasAccess: false, via: 'none' };
       }

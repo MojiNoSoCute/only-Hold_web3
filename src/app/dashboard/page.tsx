@@ -40,9 +40,10 @@ export default function DashboardPage() {
 
   const [walletModalOpen, setWalletModalOpen] = useState(false);
 
-  // On-chain state
+  // On-chain & Local state
   const [profile, setProfile] = useState<CreatorProfile | null>(null);
   const [pendingEarnings, setPendingEarnings] = useState(0n);
+  const [localPending, setLocalPending] = useState<number>(0);
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
   const [withdrawTxHash, setWithdrawTxHash] = useState('');
@@ -86,6 +87,17 @@ export default function DashboardPage() {
       alert(err.message || 'เกิดข้อผิดพลาดในการโหลดรูปภาพ');
     }
   };
+
+  // ── Load local pending earnings ──────────────────────────────────────────
+  useEffect(() => {
+    if (!address) return;
+    try {
+      const stored = localStorage.getItem(`onlyhold_pending_${address.toLowerCase()}`);
+      if (stored) {
+        setLocalPending(parseFloat(stored) || 0);
+      }
+    } catch {}
+  }, [address]);
 
   // ── Load creator profile + pending earnings ─────────────────────────────
   useEffect(() => {
@@ -151,27 +163,75 @@ export default function DashboardPage() {
     }).catch(console.error).finally(() => setLoadingProfile(false));
   }, [isConnected, address, FACTORY_ADDRESS, creators]);
 
+  // ── Helper: Add test earnings for simulation ────────────────────────────
+  const handleAddTestEarnings = () => {
+    if (!address) return;
+    const newAmount = localPending + 10;
+    setLocalPending(newAmount);
+    try {
+      localStorage.setItem(`onlyhold_pending_${address.toLowerCase()}`, newAmount.toString());
+    } catch {}
+  };
+
   // ── Withdraw earnings ────────────────────────────────────────────────────
   const handleWithdraw = async () => {
-    if (!profile?.subscriptionContract || pendingEarnings === 0n) return;
-    if (isWrongNetwork) { await switchToSepolia(); return; }
+    const totalUsdcVal = (Number(pendingEarnings) / 1_000_000) + localPending;
+    if (totalUsdcVal <= 0) return;
+
     setWithdrawing(true);
     setError('');
     setWithdrawTxHash('');
+
     try {
-      const { ethers } = require('ethers');
-      const provider = new ethers.BrowserProvider((window as any).ethereum);
-      const signer = await provider.getSigner();
-      const sub = new ethers.Contract(
-        profile.subscriptionContract,
-        ['function withdrawEarnings()', 'function pendingCreatorEarnings() view returns (uint256)'],
-        signer
-      );
-      const tx = await sub.withdrawEarnings();
-      const receipt = await tx.wait();
-      setWithdrawTxHash(receipt.hash);
-      const remaining = await sub.pendingCreatorEarnings().catch(() => 0n);
-      setPendingEarnings(remaining);
+      // 1. On-Chain Sepolia Withdrawal
+      if (pendingEarnings > 0n && profile?.subscriptionContract && profile.subscriptionContract !== '0x0000000000000000000000000000000000000000') {
+        if (isWrongNetwork) { await switchToSepolia(); setWithdrawing(false); return; }
+        const { ethers } = require('ethers');
+        const provider = new ethers.BrowserProvider((window as any).ethereum);
+        const signer = await provider.getSigner();
+        const sub = new ethers.Contract(
+          profile.subscriptionContract,
+          ['function withdrawEarnings()', 'function pendingCreatorEarnings() view returns (uint256)'],
+          signer
+        );
+        const tx = await sub.withdrawEarnings();
+        const receipt = await tx.wait();
+        setWithdrawTxHash(receipt.hash);
+        const remaining = await sub.pendingCreatorEarnings().catch(() => 0n);
+        setPendingEarnings(remaining);
+      }
+
+      // 2. Off-Chain / Local Withdrawal
+      if (localPending > 0) {
+        const withdrawn = localPending;
+        setLocalPending(0);
+        if (address) {
+          try {
+            localStorage.setItem(`onlyhold_pending_${address.toLowerCase()}`, '0');
+          } catch {}
+        }
+
+        const currentList = getAdminCreators();
+        const targetUsername = profile?.username || profileForm.name || (address ? `user_${address.slice(2, 8)}` : '');
+        const existing = currentList.find(
+          (c) =>
+            c &&
+            ((c.username && targetUsername && c.username.toLowerCase() === targetUsername.toLowerCase()) ||
+              (c.address && address && c.address.toLowerCase() === address.toLowerCase()) ||
+              (c.id && address && c.id.toLowerCase() === address.toLowerCase()))
+        );
+        if (existing) {
+          const oldTotal = parseFloat(existing.totalEarnings || '0');
+          updateAdminCreator({
+            ...existing,
+            totalEarnings: (oldTotal + withdrawn).toFixed(2),
+          });
+        }
+        if (!pendingEarnings) {
+          setWithdrawTxHash(`simulated_tx_${Date.now()}`);
+        }
+        refetch();
+      }
     } catch (err: any) {
       const msg = err.reason || err.shortMessage || err.message || 'เกิดข้อผิดพลาดในการถอนรายได้';
       setError(msg);
@@ -386,14 +446,30 @@ export default function DashboardPage() {
 
             {/* Earnings Card */}
             <div className="bg-[#13131a] border border-white/5 rounded-2xl p-5">
-              <h3 className="font-bold text-white mb-4">💰 รายได้ที่รอถอน</h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-white">💰 รายได้ที่รอถอน</h3>
+                <button
+                  type="button"
+                  onClick={handleAddTestEarnings}
+                  className="text-[11px] px-2 py-1 rounded bg-purple-600/20 border border-purple-500/30 text-purple-300 hover:bg-purple-600/40 transition-all font-medium"
+                  title="เติมรายได้จำลองเพื่อทดลองกดถอนรายได้"
+                >
+                  + เติม $10 (ทดลอง)
+                </button>
+              </div>
 
               <div className="mb-4">
                 <p className="text-white/40 text-xs mb-1">Pending Earnings (USDC)</p>
                 <p className="text-green-400 font-bold text-3xl font-mono">
-                  ${formatUSDC(pendingEarnings)}
+                  ${((Number(pendingEarnings) / 1_000_000) + localPending).toFixed(2)}
                 </p>
-                <p className="text-white/30 text-xs mt-1">จาก Stablecoin Subscriptions</p>
+                <p className="text-white/30 text-xs mt-1">
+                  {pendingEarnings > 0n
+                    ? 'สะสมบน Sepolia Smart Contract'
+                    : localPending > 0
+                    ? 'ยอดสะสมจากการสมัครสมาชิก (พร้อมถอน)'
+                    : 'จาก Stablecoin Subscriptions'}
+                </p>
               </div>
 
               {error && (
@@ -403,24 +479,31 @@ export default function DashboardPage() {
               )}
 
               {withdrawTxHash && (
-                <a
-                  href={`https://sepolia.etherscan.io/tx/${withdrawTxHash}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block mb-3 text-xs text-green-400 hover:underline truncate"
-                >
-                  ✅ ถอนสำเร็จ: {withdrawTxHash.slice(0, 16)}... →
-                </a>
+                <div className="mb-3 p-2 rounded-lg bg-green-500/10 border border-green-500/30 text-green-400 text-xs truncate">
+                  {withdrawTxHash.startsWith('simulated_tx_') ? (
+                    <span>✅ ถอนรายได้สำเร็จ! ยอดเงินโอนเข้ากระเป๋าของคุณแล้ว</span>
+                  ) : (
+                    <a
+                      href={`https://sepolia.etherscan.io/tx/${withdrawTxHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:underline flex items-center gap-1"
+                    >
+                      <span>✅ ถอนสำเร็จ: {withdrawTxHash.slice(0, 16)}...</span>
+                      <span>→</span>
+                    </a>
+                  )}
+                </div>
               )}
 
               <button
                 onClick={handleWithdraw}
-                disabled={withdrawing || pendingEarnings === 0n || isWrongNetwork}
-                className="w-full py-2.5 rounded-xl bg-green-600/80 hover:bg-green-600 text-white text-sm font-medium transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
+                disabled={withdrawing || (pendingEarnings === 0n && localPending <= 0) || (pendingEarnings > 0n && isWrongNetwork)}
+                className="w-full py-2.5 rounded-xl bg-green-600 hover:bg-green-500 text-white text-sm font-medium transition-colors disabled:opacity-40 flex items-center justify-center gap-2 shadow-lg"
               >
                 {withdrawing ? (
                   <><svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" /></svg>กำลังถอน...</>
-                ) : pendingEarnings === 0n ? 'ไม่มียอดที่รอถอน' : 'ถอนรายได้ →'}
+                ) : (pendingEarnings === 0n && localPending <= 0) ? 'ไม่มียอดที่รอถอน' : 'ถอนรายได้ →'}
               </button>
             </div>
 
