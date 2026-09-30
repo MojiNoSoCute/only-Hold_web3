@@ -503,6 +503,20 @@ export default function DashboardPage() {
                 <p className="text-white/30 text-xs mt-1">
                   เงินฝากสะสมบนสัญญา Smart Contract (Sepolia Testnet)
                 </p>
+
+                {nftStats.totalMinted > 0 && (
+                  <div className="mt-3 pt-3 border-t border-white/10">
+                    <div className="flex items-center justify-between">
+                      <span className="text-white/60 text-xs">รายได้จาก NFT Membership:</span>
+                      <span className="text-purple-300 font-bold font-mono text-sm">
+                        +{(nftStats.totalMinted * parseFloat(nftStats.mintPriceEth) * 0.95).toFixed(3)} ETH
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-green-400 mt-1 flex items-center gap-1">
+                      <span>✓</span> โอนเข้ากระเป๋า MetaMask ของคุณอัตโนมัติแล้ว
+                    </p>
+                  </div>
+                )}
               </div>
 
               {error && (
@@ -542,7 +556,7 @@ export default function DashboardPage() {
                     <div className="flex items-center justify-between mb-1">
                       <p className="text-purple-400 font-medium">🖼️ NFT Contract</p>
                       {nftStats.totalMinted > 0 && (
-                        <span className="text-[10px] text-purple-300 bg-purple-500/20 px-1.5 py-0.5 rounded">
+                        <span className="text-[10px] text-purple-300 bg-purple-500/20 px-1.5 py-0.5 rounded font-mono">
                           ขายแล้ว {nftStats.totalMinted} ชิ้น ({(nftStats.totalMinted * parseFloat(nftStats.mintPriceEth) * 0.95).toFixed(3)} ETH)
                         </span>
                       )}
@@ -551,10 +565,15 @@ export default function DashboardPage() {
                       href={`https://sepolia.etherscan.io/address/${profile.nftContract}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="font-mono text-white/50 hover:text-purple-400 break-all transition-colors"
+                      className="font-mono text-white/50 hover:text-purple-400 break-all transition-colors block mb-1.5"
                     >
                       {profile.nftContract}
                     </a>
+                    {nftStats.totalMinted > 0 && (
+                      <p className="text-[11px] text-green-400/90 bg-green-500/10 border border-green-500/20 px-2 py-1 rounded-lg">
+                        ✓ ยอด {(nftStats.totalMinted * parseFloat(nftStats.mintPriceEth) * 0.95).toFixed(3)} ETH ถูกโอนเข้ากระเป๋าของคุณทันทีที่มีการ Mint
+                      </p>
+                    )}
                   </div>
                 )}
                 {profile?.subscriptionContract && profile.subscriptionContract !== '0x0000000000000000000000000000000000000000' && (
