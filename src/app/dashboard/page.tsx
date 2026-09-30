@@ -40,12 +40,12 @@ export default function DashboardPage() {
 
   const [walletModalOpen, setWalletModalOpen] = useState(false);
 
-  // On-chain & Local state
+  // On-chain state
   const [profile, setProfile] = useState<CreatorProfile | null>(null);
   const [pendingEarnings, setPendingEarnings] = useState(0n);
-  const [localPending, setLocalPending] = useState<number>(0);
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
+  const [depositing, setDepositing] = useState(false);
   const [withdrawTxHash, setWithdrawTxHash] = useState('');
   const [error, setError] = useState('');
 
@@ -88,18 +88,7 @@ export default function DashboardPage() {
     }
   };
 
-  // ── Load local pending earnings ──────────────────────────────────────────
-  useEffect(() => {
-    if (!address) return;
-    try {
-      const stored = localStorage.getItem(`onlyhold_pending_${address.toLowerCase()}`);
-      if (stored) {
-        setLocalPending(parseFloat(stored) || 0);
-      }
-    } catch {}
-  }, [address]);
-
-  // ── Load creator profile + pending earnings ─────────────────────────────
+  // ── Load creator profile + pending earnings from Sepolia Smart Contract ─
   useEffect(() => {
     if (!isConnected || !address || !FACTORY_ADDRESS) return;
     setLoadingProfile(true);
@@ -163,77 +152,89 @@ export default function DashboardPage() {
     }).catch(console.error).finally(() => setLoadingProfile(false));
   }, [isConnected, address, FACTORY_ADDRESS, creators]);
 
-  // ── Helper: Add test earnings for simulation ────────────────────────────
-  const handleAddTestEarnings = () => {
-    if (!address) return;
-    const newAmount = localPending + 10;
-    setLocalPending(newAmount);
+  // ── Helper: Real Sepolia USDC Test Deposit ─────────────────────────────
+  const handleTestDepositOnSepolia = async () => {
+    if (!profile?.subscriptionContract || profile.subscriptionContract === '0x0000000000000000000000000000000000000000') {
+      alert('คุณยังไม่ได้เปิดตัวสัญญาบน Sepolia Testnet กรุณาลงทะเบียนครีเอเตอร์ก่อน');
+      return;
+    }
+    if (isWrongNetwork) { await switchToSepolia(); return; }
+
+    setDepositing(true);
+    setError('');
     try {
-      localStorage.setItem(`onlyhold_pending_${address.toLowerCase()}`, newAmount.toString());
-    } catch {}
+      const { ethers } = require('ethers');
+      const provider = new ethers.BrowserProvider((window as any).ethereum);
+      const signer = await provider.getSigner();
+
+      const sub = new ethers.Contract(
+        profile.subscriptionContract,
+        ['function monthlyPrice() view returns (uint256)', 'function subscribe(uint256 amount)', 'function pendingCreatorEarnings() view returns (uint256)'],
+        signer
+      );
+      const price: bigint = await sub.monthlyPrice().catch(() => 10_000_000n);
+
+      const usdc = new ethers.Contract(
+        USDC_ADDRESS,
+        ['function approve(address spender, uint256 amount) returns (bool)', 'function allowance(address owner, address spender) view returns (uint256)'],
+        signer
+      );
+
+      const allowance = await usdc.allowance(address, profile.subscriptionContract);
+      if (allowance < price) {
+        const appTx = await usdc.approve(profile.subscriptionContract, ethers.MaxUint256);
+        await appTx.wait();
+      }
+
+      const tx = await sub.subscribe(price);
+      await tx.wait();
+
+      const remaining = await sub.pendingCreatorEarnings().catch(() => 0n);
+      setPendingEarnings(remaining);
+      setWithdrawTxHash('');
+      alert('🎉 สตรีมฝาก USDC บน Sepolia สำเร็จ! ยอดรายได้สะสมบน Smart Contract ถูกอัปเดตแล้ว สามารถกดถอนได้ทันที');
+    } catch (err: any) {
+      const msg = err.reason || err.shortMessage || err.message || 'เกิดข้อผิดพลาดในการทำรายการบน Sepolia';
+      setError(msg);
+    } finally {
+      setDepositing(false);
+    }
   };
 
-  // ── Withdraw earnings ────────────────────────────────────────────────────
+  // ── Withdraw earnings (Pure Sepolia Web3) ──────────────────────────────────
   const handleWithdraw = async () => {
-    const totalUsdcVal = (Number(pendingEarnings) / 1_000_000) + localPending;
-    if (totalUsdcVal <= 0) return;
+    if (!profile?.subscriptionContract || profile.subscriptionContract === '0x0000000000000000000000000000000000000000') {
+      setError('ไม่พบสัญญา Subscription บน Sepolia กรุณาเปิดตัวครีเอเตอร์ก่อน');
+      return;
+    }
+    if (pendingEarnings === 0n) {
+      setError('ไม่มียอดที่รอถอนบน Sepolia smart contract');
+      return;
+    }
+    if (isWrongNetwork) { await switchToSepolia(); return; }
 
     setWithdrawing(true);
     setError('');
     setWithdrawTxHash('');
 
     try {
-      // 1. On-Chain Sepolia Withdrawal
-      if (pendingEarnings > 0n && profile?.subscriptionContract && profile.subscriptionContract !== '0x0000000000000000000000000000000000000000') {
-        if (isWrongNetwork) { await switchToSepolia(); setWithdrawing(false); return; }
-        const { ethers } = require('ethers');
-        const provider = new ethers.BrowserProvider((window as any).ethereum);
-        const signer = await provider.getSigner();
-        const sub = new ethers.Contract(
-          profile.subscriptionContract,
-          ['function withdrawEarnings()', 'function pendingCreatorEarnings() view returns (uint256)'],
-          signer
-        );
-        const tx = await sub.withdrawEarnings();
-        const receipt = await tx.wait();
-        setWithdrawTxHash(receipt.hash);
-        const remaining = await sub.pendingCreatorEarnings().catch(() => 0n);
-        setPendingEarnings(remaining);
-      }
+      const { ethers } = require('ethers');
+      const provider = new ethers.BrowserProvider((window as any).ethereum);
+      const signer = await provider.getSigner();
+      const sub = new ethers.Contract(
+        profile.subscriptionContract,
+        ['function withdrawEarnings()', 'function pendingCreatorEarnings() view returns (uint256)'],
+        signer
+      );
+      const tx = await sub.withdrawEarnings();
+      const receipt = await tx.wait();
+      setWithdrawTxHash(receipt.hash);
 
-      // 2. Off-Chain / Local Withdrawal
-      if (localPending > 0) {
-        const withdrawn = localPending;
-        setLocalPending(0);
-        if (address) {
-          try {
-            localStorage.setItem(`onlyhold_pending_${address.toLowerCase()}`, '0');
-          } catch {}
-        }
-
-        const currentList = getAdminCreators();
-        const targetUsername = profile?.username || profileForm.name || (address ? `user_${address.slice(2, 8)}` : '');
-        const existing = currentList.find(
-          (c) =>
-            c &&
-            ((c.username && targetUsername && c.username.toLowerCase() === targetUsername.toLowerCase()) ||
-              (c.address && address && c.address.toLowerCase() === address.toLowerCase()) ||
-              (c.id && address && c.id.toLowerCase() === address.toLowerCase()))
-        );
-        if (existing) {
-          const oldTotal = parseFloat(existing.totalEarnings || '0');
-          updateAdminCreator({
-            ...existing,
-            totalEarnings: (oldTotal + withdrawn).toFixed(2),
-          });
-        }
-        if (!pendingEarnings) {
-          setWithdrawTxHash(`simulated_tx_${Date.now()}`);
-        }
-        refetch();
-      }
+      const remaining = await sub.pendingCreatorEarnings().catch(() => 0n);
+      setPendingEarnings(remaining);
+      refetch();
     } catch (err: any) {
-      const msg = err.reason || err.shortMessage || err.message || 'เกิดข้อผิดพลาดในการถอนรายได้';
+      const msg = err.reason || err.shortMessage || err.message || 'เกิดข้อผิดพลาดในการถอนรายได้บน Sepolia';
       setError(msg);
     } finally {
       setWithdrawing(false);
@@ -447,63 +448,55 @@ export default function DashboardPage() {
             {/* Earnings Card */}
             <div className="bg-[#13131a] border border-white/5 rounded-2xl p-5">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-white">💰 รายได้ที่รอถอน</h3>
-                <button
-                  type="button"
-                  onClick={handleAddTestEarnings}
-                  className="text-[11px] px-2 py-1 rounded bg-purple-600/20 border border-purple-500/30 text-purple-300 hover:bg-purple-600/40 transition-all font-medium"
-                  title="เติมรายได้จำลองเพื่อทดลองกดถอนรายได้"
-                >
-                  + เติม $10 (ทดลอง)
-                </button>
+                <h3 className="font-bold text-white">💰 รายได้ที่รอถอน (Sepolia)</h3>
+                {profile?.subscriptionContract && profile.subscriptionContract !== '0x0000000000000000000000000000000000000000' && (
+                  <button
+                    type="button"
+                    onClick={handleTestDepositOnSepolia}
+                    disabled={depositing}
+                    className="text-[11px] px-2.5 py-1 rounded-lg bg-purple-600/20 border border-purple-500/30 text-purple-300 hover:bg-purple-600/40 transition-all font-medium flex items-center gap-1 disabled:opacity-50"
+                    title="ฝาก USDC เข้า Smart Contract บน Sepolia เพื่อทดสอบการถอน"
+                  >
+                    {depositing ? 'กำลังฝาก Sepolia...' : '🧪 ทดสอบฝาก USDC บน Sepolia'}
+                  </button>
+                )}
               </div>
 
               <div className="mb-4">
-                <p className="text-white/40 text-xs mb-1">Pending Earnings (USDC)</p>
+                <p className="text-white/40 text-xs mb-1">Pending Earnings (Sepolia USDC)</p>
                 <p className="text-green-400 font-bold text-3xl font-mono">
-                  ${((Number(pendingEarnings) / 1_000_000) + localPending).toFixed(2)}
+                  ${(Number(pendingEarnings) / 1_000_000).toFixed(2)}
                 </p>
                 <p className="text-white/30 text-xs mt-1">
-                  {pendingEarnings > 0n
-                    ? 'สะสมบน Sepolia Smart Contract'
-                    : localPending > 0
-                    ? 'ยอดสะสมจากการสมัครสมาชิก (พร้อมถอน)'
-                    : 'จาก Stablecoin Subscriptions'}
+                  เงินฝากสะสมบนสัญญา Smart Contract (Sepolia Testnet)
                 </p>
               </div>
 
               {error && (
-                <div className="mb-3 p-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-xs">
+                <div className="mb-3 p-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs break-words">
                   ❌ {error}
                 </div>
               )}
 
               {withdrawTxHash && (
-                <div className="mb-3 p-2 rounded-lg bg-green-500/10 border border-green-500/30 text-green-400 text-xs truncate">
-                  {withdrawTxHash.startsWith('simulated_tx_') ? (
-                    <span>✅ ถอนรายได้สำเร็จ! ยอดเงินโอนเข้ากระเป๋าของคุณแล้ว</span>
-                  ) : (
-                    <a
-                      href={`https://sepolia.etherscan.io/tx/${withdrawTxHash}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:underline flex items-center gap-1"
-                    >
-                      <span>✅ ถอนสำเร็จ: {withdrawTxHash.slice(0, 16)}...</span>
-                      <span>→</span>
-                    </a>
-                  )}
-                </div>
+                <a
+                  href={`https://sepolia.etherscan.io/tx/${withdrawTxHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block mb-3 p-2.5 rounded-xl bg-green-500/10 border border-green-500/30 text-green-400 text-xs hover:underline truncate"
+                >
+                  ✅ ถอนรายได้บน Sepolia สำเร็จ! ดูบน Etherscan: {withdrawTxHash.slice(0, 14)}... →
+                </a>
               )}
 
               <button
                 onClick={handleWithdraw}
-                disabled={withdrawing || (pendingEarnings === 0n && localPending <= 0) || (pendingEarnings > 0n && isWrongNetwork)}
+                disabled={withdrawing || pendingEarnings === 0n || isWrongNetwork || !profile?.subscriptionContract}
                 className="w-full py-2.5 rounded-xl bg-green-600 hover:bg-green-500 text-white text-sm font-medium transition-colors disabled:opacity-40 flex items-center justify-center gap-2 shadow-lg"
               >
                 {withdrawing ? (
-                  <><svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" /></svg>กำลังถอน...</>
-                ) : (pendingEarnings === 0n && localPending <= 0) ? 'ไม่มียอดที่รอถอน' : 'ถอนรายได้ →'}
+                  <><svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" /></svg>กำลังประมวลผลถอนบน Sepolia...</>
+                ) : !profile?.subscriptionContract ? 'ไม่พบสัญญา Sepolia' : pendingEarnings === 0n ? 'ไม่มียอดที่รอถอนบน Sepolia' : 'ถอนรายได้ Sepolia →'}
               </button>
             </div>
 
