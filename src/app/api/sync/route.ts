@@ -173,7 +173,14 @@ async function getStore(): Promise<SyncStore> {
 export async function GET() {
   try {
     const store = await getStore();
-    return NextResponse.json(store, { status: 200 });
+    return NextResponse.json(store, {
+      status: 200,
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    });
   } catch {
     return NextResponse.json(
       globalStore._onlyhold_sync_store || {
@@ -184,7 +191,14 @@ export async function GET() {
         comments: {},
         version: Date.now(),
       },
-      { status: 200 }
+      {
+        status: 200,
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
+      }
     );
   }
 }

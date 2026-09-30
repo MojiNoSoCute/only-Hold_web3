@@ -364,8 +364,15 @@ export async function pullSync(): Promise<void> {
   if (typeof window === 'undefined') return;
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000);
-    const res = await fetch('/api/sync', { signal: controller.signal });
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+    const res = await fetch(`/api/sync?t=${Date.now()}`, {
+      cache: 'no-store',
+      headers: {
+        'Pragma': 'no-cache',
+        'Cache-Control': 'no-cache',
+      },
+      signal: controller.signal,
+    });
     clearTimeout(timeoutId);
     if (res.ok) {
       const data = await res.json();
